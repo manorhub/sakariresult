@@ -7,7 +7,7 @@ assets = { directory = "./dist" }
 [[d1_databases]]
 binding = "DB"
 database_name = "sarkari-portal-db"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "48e94f25-b04b-4e1f-86cc-0cb4d87423d9"
 migrations_dir = "./migrations"
 
 [[r2_buckets]]
