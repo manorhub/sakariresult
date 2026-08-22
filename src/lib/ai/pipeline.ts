@@ -14,8 +14,9 @@ import { generateArticle } from './generator.ts';
 import { generateSEO } from './seo.ts';
 import { generateFAQs } from './faq.ts';
 import { detectAndSummarizeUpdates, createContentVersion } from './updates.ts';
-import { generateId, slugify } from '../utils.ts';
+import { generateId, slugify, getContentTypeRoute } from '../utils.ts';
 import { extractCleanContent } from '../crawler/fingerprint.ts';
+import { submitUrlToGoogle } from '../seo/google-indexing.ts';
 
 /**
  * Executes the complete 12-step AI pipeline for a given source page or raw content
@@ -120,14 +121,28 @@ export async function runAIPipeline(
       }
     }
 
-    // 11. Determine Final Item Status
-    let finalContentStatus: ContentStatus = 'draft';
-    if (quality.eligibility === 'auto_publish_eligible' && !verification.hasCriticalConflicts) {
-      finalContentStatus = 'published';
-    } else if (quality.eligibility === 'review_required' || verification.hasCriticalConflicts) {
+    // 11. Determine Final Item Status based on Application Last Date & Fact Verification
+    let isDateExpired = false;
+    const lastDateStr = (extraction as any).application_last_date || (extraction as any).last_date;
+    if (lastDateStr) {
+      const parsedDate = new Date(lastDateStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (!isNaN(parsedDate.getTime()) && parsedDate < today) {
+        isDateExpired = true;
+      }
+    }
+
+    let finalContentStatus: ContentStatus = 'published';
+    if (isDateExpired) {
+      // Application date has already passed -> Directly Archive!
+      finalContentStatus = 'archived';
+    } else if (verification.hasCriticalConflicts) {
+      // Conflicts detected -> Flag for human review
       finalContentStatus = 'review';
     } else {
-      finalContentStatus = 'draft';
+      // Application date is upcoming / active -> Automatically Publish!
+      finalContentStatus = 'published';
     }
 
     const aiStatus = verification.hasCriticalConflicts ? 'verification_required' : 'completed';
@@ -318,6 +333,17 @@ export async function runAIPipeline(
       JSON.stringify(seo),
       'ai'
     );
+
+    // 16. Auto Google Instant Indexing on Publish
+    if (finalContentStatus === 'published') {
+      try {
+        const routePrefix = getContentTypeRoute(classification.mappedContentType);
+        const publicUrl = `https://sarkariinfo.in/${routePrefix}/${slug}`;
+        await submitUrlToGoogle(db, publicUrl, 'URL_UPDATED', { contentItemId });
+      } catch (idxErr: any) {
+        console.warn('[Auto Google Indexing Notice]', idxErr?.message);
+      }
+    }
 
     const durationMs = Date.now() - startTime;
 

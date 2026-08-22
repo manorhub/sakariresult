@@ -87,3 +87,29 @@ export function generateId(prefix: string = 'id'): string {
   const randomStr = Math.random().toString(36).substring(2, 8);
   return `${prefix}_${timestamp}_${randomStr}`;
 }
+
+/**
+ * Get route prefix for a content type
+ */
+export function getContentTypeRoute(type: string): string {
+  switch (type) {
+    case 'job':
+      return 'jobs';
+    case 'result':
+      return 'results';
+    case 'admit_card':
+      return 'admit-card';
+    case 'answer_key':
+      return 'answer-key';
+    case 'exam':
+      return 'exams';
+    case 'scholarship':
+      return 'scholarships';
+    case 'syllabus':
+      return 'syllabus';
+    case 'scheme':
+      return 'schemes';
+    default:
+      return 'important-updates';
+  }
+}
