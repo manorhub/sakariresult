@@ -19,6 +19,7 @@ import { buildJobPostingSchema, buildBreadcrumbSchema } from '../../lib/seo/sche
 import { buildCanonicalUrl } from '../../lib/seo/canonical.ts';
 import { resolveInternalLinks } from '../../lib/internal-links/resolver.ts';
 import { injectContextualLinks } from '../../lib/internal-links/renderer.ts';
+import { renderMarkdownToHtml } from '../../lib/markdown.ts';
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/jobs');
@@ -244,7 +245,7 @@ if (!isProgrammatic && singleJobData) {
         <!-- Structured Article Body with Contextual Internal Links -->
         {processedArticleContent ? (
           <div class="prose prose-sm sm:prose max-w-none text-slate-800 leading-relaxed font-sans mt-8 divide-y-0 space-y-6">
-            <div class="article-markdown-body" set:html={processedArticleContent.replace(/## /g, '<h2 class="text-lg sm:text-xl font-bold text-slate-900 border-b border-slate-200 pb-2 mt-8 mb-4">').replace(/### /g, '<h3 class="text-base font-bold text-slate-800 mt-6 mb-2">').replace(/\n\n/g, '<br/><br/>')} />
+            <div class="article-markdown-body" set:html={renderMarkdownToHtml(processedArticleContent)} />
           </div>
         ) : (
           <div class="space-y-6 text-xs sm:text-sm text-slate-800 mt-6">
