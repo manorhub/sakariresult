@@ -40,29 +40,10 @@ export const ALL: APIRoute = async ({ request, locals }) => {
       respectRobots: true,
     });
 
-    // Automatically archive any published posts whose application last date has expired
-    let archivedCount = 0;
-    try {
-      const archiveResult = await db.run(`
-        UPDATE content_items
-        SET status = 'archived', updated_at = CURRENT_TIMESTAMP
-        WHERE status = 'published'
-          AND id IN (
-            SELECT content_item_id FROM jobs
-            WHERE application_last_date IS NOT NULL
-              AND date(application_last_date) < date('now')
-          )
-      `);
-      archivedCount = archiveResult.meta.changes || 0;
-    } catch (archiveErr: any) {
-      console.warn('[Auto-Archive Cron Warning]', archiveErr?.message);
-    }
-
     return new Response(JSON.stringify({
       success: true,
       timestamp: new Date().toISOString(),
       sourcesProcessed: summaries.length,
-      expiredArchived: archivedCount,
       summaries: summaries.map(s => ({
         sourceId: s.sourceId,
         sourceName: s.sourceName,
