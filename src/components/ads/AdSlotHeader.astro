@@ -1,0 +1,37 @@
+---
+// src/components/ads/AdSlotHeader.astro
+// Clean, Non-Obtrusive Header Ad Placement
+
+import { getDb } from '../../lib/db.ts';
+import { evaluateAdDisplay } from '../../lib/monetization/ads.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const isDev = import.meta.env.DEV;
+let adState = { showAd: false, isDev: false, provider: 'none', publisherId: '', slotType: 'header' };
+
+if (d1) {
+  const db = getDb(d1);
+  adState = await evaluateAdDisplay(db, 'header', isDev);
+} else if (isDev) {
+  adState = { showAd: true, isDev: true, provider: 'mock', publisherId: 'dev-mode', slotType: 'header' };
+}
+---
+
+{adState.showAd && (
+  <div class="w-full bg-slate-100/80 border-b border-slate-200 py-2.5 px-4 text-center my-1" aria-label="Sponsored Advertisement">
+    <div class="max-w-4xl mx-auto flex flex-col items-center justify-center">
+      <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 mb-1">
+        ADVERTISEMENT
+      </span>
+      {adState.isDev ? (
+        <div class="w-full h-16 bg-slate-200/90 border border-dashed border-slate-300 rounded-lg flex items-center justify-center text-xs font-semibold text-slate-500">
+          Header Ad Slot (728x90 / Responsive)
+        </div>
+      ) : (
+        <div class="ad-slot-container min-h-[50px] w-full" data-ad-slot="header" data-publisher={adState.publisherId}>
+          <!-- Provider Script Integration Container -->
+        </div>
+      )}
+    </div>
+  </div>
+)}

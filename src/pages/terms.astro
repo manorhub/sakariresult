@@ -1,0 +1,44 @@
+---
+// src/pages/terms.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+---
+
+<BaseLayout
+  title="Terms & Conditions of Service — Sarkari Info"
+  description="Terms and Conditions governing the use of Sarkari Info government jobs and results portal."
+>
+  <Breadcrumbs items={[{ name: 'Terms of Service' }]} />
+
+  <div class="max-w-4xl mx-auto px-4 py-10">
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-6 text-xs sm:text-sm text-slate-700 leading-relaxed">
+      
+      <div class="border-b border-slate-100 pb-4">
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          Terms & Conditions
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">Last Updated: January 2026</p>
+      </div>
+
+      <p>
+        Welcome to <strong>Sarkari Info</strong>. By accessing this website, you agree to comply with and be bound by the following terms and conditions of use.
+      </p>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">1. Use of Content</h2>
+      <p>
+        The content of the pages of this website is for your general information and educational use only. It is subject to change without prior notice.
+      </p>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">2. Accuracy of Information</h2>
+      <p>
+        While we strive to ensure all dates, eligibility parameters, syllabus notes, and links are accurate and up-to-date, neither we nor any third parties provide any warranty or guarantee as to the completeness or timeliness of information found or offered on this website for any particular purpose.
+      </p>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">3. Prohibited Conduct</h2>
+      <p>
+        Unauthorized attempts to bypass security controls, execute DDoS attacks, or tamper with administrative functions are strictly prohibited.
+      </p>
+
+    </div>
+  </div>
+</BaseLayout>

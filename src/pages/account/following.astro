@@ -1,0 +1,166 @@
+---
+// src/pages/account/following.astro
+// Followed Organizations & Categories
+
+import AccountLayout from '../../layouts/AccountLayout.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { getDb } from '../../lib/db.ts';
+import type { UserSession } from '../../lib/user_auth.ts';
+import type { Organization, Category } from '../../lib/types.ts';
+
+const session = (Astro.locals as any).userSession as UserSession | null;
+if (!session) return Astro.redirect('/login');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+// Followed Orgs
+const followedOrgs = (await db.query<Organization>(`
+  SELECT o.*, fo.created_at as followed_at,
+         (SELECT COUNT(*) FROM content_items ci WHERE ci.organization_id = o.id AND ci.status = 'published') as content_count
+  FROM followed_organizations fo
+  JOIN organizations o ON o.id = fo.organization_id
+  WHERE fo.user_id = ?
+  ORDER BY fo.created_at DESC
+`, [session.userId])).results;
+
+// Followed Categories
+const followedCats = (await db.query<Category>(`
+  SELECT c.*, fc.created_at as followed_at,
+         (SELECT COUNT(*) FROM content_items ci WHERE ci.category_id = c.id AND ci.status = 'published') as content_count
+  FROM followed_categories fc
+  JOIN categories c ON c.id = fc.category_id
+  WHERE fc.user_id = ?
+  ORDER BY fc.created_at DESC
+`, [session.userId])).results;
+---
+
+<AccountLayout title="Following" activeNav="/account/following">
+  <div class="space-y-8">
+    
+    <!-- Followed Organizations Section -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div>
+          <h1 class="text-base sm:text-lg font-black text-slate-900">Followed Recruitment Boards ({followedOrgs.length})</h1>
+          <p class="text-xs text-slate-500">Receive instant alerts when these commissions release new vacancies or scorecards.</p>
+        </div>
+        <a href="/organizations" class="text-xs font-bold text-blue-600 hover:underline shrink-0">Browse All &rarr;</a>
+      </div>
+
+      {followedOrgs.length > 0 ? (
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {followedOrgs.map((org) => (
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+              <div class="flex items-start space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-gov-navy text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  {org.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <a href={`/organizations/${org.slug}`} class="text-xs font-bold text-slate-900 hover:text-blue-600 block leading-tight">
+                    {org.name}
+                  </a>
+                  <span class="text-[10px] text-slate-400 mt-1 block">{org.content_count || 0} active notices</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+                <a href={`/organizations/${org.slug}`} class="font-bold text-blue-600 hover:underline">View Hub &rarr;</a>
+                <button
+                  type="button"
+                  data-org-id={org.id}
+                  class="unfollow-org-btn text-rose-600 hover:text-rose-800 font-bold"
+                >
+                  Unfollow
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No Followed Organizations"
+          message="Follow UPSC, SSC, RRB, IBPS, or State PSCs to get custom alerts when new notices drop."
+          actionUrl="/organizations"
+          actionLabel="Browse Commissions"
+        />
+      )}
+    </div>
+
+    <!-- Followed Categories Section -->
+    <div class="space-y-4 pt-4 border-t border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div>
+          <h2 class="text-base sm:text-lg font-black text-slate-900">Followed Job Sectors ({followedCats.length})</h2>
+          <p class="text-xs text-slate-500">Track all announcements in your desired career streams.</p>
+        </div>
+      </div>
+
+      {followedCats.length > 0 ? (
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {followedCats.map((cat) => (
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex items-center justify-between">
+              <div>
+                <a href={`/jobs/${cat.slug}`} class="text-xs font-bold text-slate-900 hover:text-blue-600 block">
+                  {cat.name}
+                </a>
+                <span class="text-[10px] text-slate-400 mt-0.5 block">{cat.content_count || 0} published opportunities</span>
+              </div>
+              <button
+                type="button"
+                data-cat-id={cat.id}
+                class="unfollow-cat-btn text-rose-600 hover:text-rose-800 font-bold text-xs"
+              >
+                Unfollow
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No Followed Sectors"
+          message="Follow Railway, Banking, Defence, Teaching, or Police sectors to receive sector-specific job alerts."
+          actionUrl="/jobs"
+          actionLabel="Browse Job Sectors"
+        />
+      )}
+    </div>
+
+  </div>
+</AccountLayout>
+
+<script>
+  document.querySelectorAll('.unfollow-org-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const organizationId = btn.getAttribute('data-org-id');
+      if (!organizationId) return;
+
+      try {
+        const res = await fetch('/api/user/follow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organizationId }),
+        });
+        const data = (await res.json()) as any;
+        if (data.success) window.location.reload();
+      } catch {}
+    });
+  });
+
+  document.querySelectorAll('.unfollow-cat-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const categoryId = btn.getAttribute('data-cat-id');
+      if (!categoryId) return;
+
+      try {
+        const res = await fetch('/api/user/follow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ categoryId }),
+        });
+        const data = (await res.json()) as any;
+        if (data.success) window.location.reload();
+      } catch {}
+    });
+  });
+</script>

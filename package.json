@@ -1,0 +1,40 @@
+{
+  "name": "sarkari-portal",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "check": "astro check",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test": "node tests/verify_phase1.mjs && node --experimental-strip-types tests/verify_phase2.mjs && node --experimental-strip-types tests/verify_phase3.mjs && node --experimental-strip-types tests/verify_phase4.mjs && node --experimental-strip-types tests/verify_phase5.mjs && node --experimental-strip-types tests/verify_phase6.mjs && node --experimental-strip-types tests/verify_phase7.mjs",
+    "test:phase1": "node tests/verify_phase1.mjs",
+    "test:phase2": "node --experimental-strip-types tests/verify_phase2.mjs",
+    "test:phase3": "node --experimental-strip-types tests/verify_phase3.mjs",
+    "test:phase4": "node --experimental-strip-types tests/verify_phase4.mjs",
+    "test:phase5": "node --experimental-strip-types tests/verify_phase5.mjs",
+    "test:phase6": "node --experimental-strip-types tests/verify_phase6.mjs",
+    "test:phase7": "node --experimental-strip-types tests/verify_phase7.mjs",
+    "d1:local:migrate": "wrangler d1 execute DB --local --file=./migrations/0000_initial_schema.sql && wrangler d1 execute DB --local --file=./migrations/0001_seed_initial_data.sql && wrangler d1 execute DB --local --file=./migrations/0002_phase2_crawler_tables.sql && wrangler d1 execute DB --local --file=./migrations/0003_phase3_ai_engine.sql && wrangler d1 execute DB --local --file=./migrations/0004_phase5_seo_and_redirects.sql && wrangler d1 execute DB --local --file=./migrations/0005_phase6_user_accounts_and_alerts.sql && wrangler d1 execute DB --local --file=./migrations/0006_phase7_monetization_analytics_and_logs.sql",
+    "d1:remote:migrate": "wrangler d1 execute DB --remote --file=./migrations/0000_initial_schema.sql && wrangler d1 execute DB --remote --file=./migrations/0001_seed_initial_data.sql && wrangler d1 execute DB --remote --file=./migrations/0002_phase2_crawler_tables.sql && wrangler d1 execute DB --remote --file=./migrations/0003_phase3_ai_engine.sql && wrangler d1 execute DB --remote --file=./migrations/0004_phase5_seo_and_redirects.sql && wrangler d1 execute DB --remote --file=./migrations/0005_phase6_user_accounts_and_alerts.sql && wrangler d1 execute DB --remote --file=./migrations/0006_phase7_monetization_analytics_and_logs.sql"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/cloudflare": "^12.2.0",
+    "@astrojs/tailwind": "^6.0.0",
+    "astro": "^5.4.2",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.0.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250224.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.9",
+    "better-sqlite3": "^11.8.1",
+    "wrangler": "^3.111.0"
+  }
+}

@@ -1,0 +1,49 @@
+---
+// src/pages/privacy-policy.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+---
+
+<BaseLayout
+  title="Privacy Policy — Sarkari Info User Data Protection"
+  description="Read the Privacy Policy of Sarkari Info. We prioritize user privacy and explain how cookies, analytics, and security measures operate."
+>
+  <Breadcrumbs items={[{ name: 'Privacy Policy' }]} />
+
+  <div class="max-w-4xl mx-auto px-4 py-10">
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-6 text-xs sm:text-sm text-slate-700 leading-relaxed">
+      
+      <div class="border-b border-slate-100 pb-4">
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          Privacy Policy
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">Last Updated: January 2026</p>
+      </div>
+
+      <p>
+        At <strong>Sarkari Info</strong>, accessible from our official website, the privacy of our visitors is one of our top priorities. This Privacy Policy document outlines the types of information that is collected and recorded by Sarkari Info and how we use it.
+      </p>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">1. Information We Collect</h2>
+      <p>
+        Sarkari Info operates primarily as a public informational website. We do not require public users to create personal accounts or submit sensitive identity details (such as Aadhaar, PAN, or banking credentials) to browse job notifications, exam results, or syllabus downloads.
+      </p>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">2. Log Files & Edge Analytics</h2>
+      <p>
+        Like standard web services, Sarkari Info uses standard server log files provided by Cloudflare. These logs include internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and number of clicks. These are not linked to any information that is personally identifiable.
+      </p>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">3. Cookies & Security</h2>
+      <p>
+        We may use minimal session cookies strictly for administrative sessions and Cloudflare security / Turnstile validation against spam bots.
+      </p>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">4. Third-Party Links</h2>
+      <p>
+        Our portal contains external hyperlinks to official government websites (e.g. upsc.gov.in, ssc.gov.in). We are not responsible for the privacy practices or contents of such external websites.
+      </p>
+
+    </div>
+  </div>
+</BaseLayout>

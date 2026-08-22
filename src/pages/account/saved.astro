@@ -1,0 +1,146 @@
+---
+// src/pages/account/saved.astro
+// User Saved Items Page (Jobs, Exams, Results, Admit Cards, Answer Keys)
+
+import AccountLayout from '../../layouts/AccountLayout.astro';
+import ContentCard from '../../components/ContentCard.astro';
+import JobCard from '../../components/JobCard.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { getDb } from '../../lib/db.ts';
+import type { UserSession } from '../../lib/user_auth.ts';
+import type { PublicJobItem } from '../../lib/public_queries.ts';
+import { calculateJobStatus } from '../../lib/public_queries.ts';
+
+const session = (Astro.locals as any).userSession as UserSession | null;
+if (!session) return Astro.redirect('/login');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const typeFilter = Astro.url.searchParams.get('type') || 'all';
+
+const conditions: string[] = ['si.user_id = ?', "ci.status = 'published'"];
+const params: any[] = [session.userId];
+
+if (typeFilter !== 'all') {
+  conditions.push('ci.type = ?');
+  params.push(typeFilter);
+}
+
+const savedItems = (await db.query<PublicJobItem>(`
+  SELECT ci.*, j.post_name, j.vacancy as total_vacancies, j.qualification, j.application_last_date,
+         o.name as organization_name, o.slug as organization_slug,
+         c.name as category_name, c.slug as category_slug,
+         si.created_at as saved_at
+  FROM saved_items si
+  JOIN content_items ci ON ci.id = si.content_item_id
+  LEFT JOIN jobs j ON j.content_item_id = ci.id
+  LEFT JOIN organizations o ON o.id = ci.organization_id
+  LEFT JOIN categories c ON c.id = ci.category_id
+  WHERE ${conditions.join(' AND ')}
+  ORDER BY si.created_at DESC
+`, params)).results.map(i => ({
+  ...i,
+  calculated_status: calculateJobStatus(i),
+}));
+
+const counts = {
+  all: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM saved_items si JOIN content_items ci ON ci.id = si.content_item_id AND ci.status = "published" WHERE si.user_id = ?', [session.userId]))?.c || 0,
+  job: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM saved_items si JOIN content_items ci ON ci.id = si.content_item_id AND ci.status = "published" WHERE si.user_id = ? AND ci.type = "job"', [session.userId]))?.c || 0,
+  result: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM saved_items si JOIN content_items ci ON ci.id = si.content_item_id AND ci.status = "published" WHERE si.user_id = ? AND ci.type = "result"', [session.userId]))?.c || 0,
+  admit_card: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM saved_items si JOIN content_items ci ON ci.id = si.content_item_id AND ci.status = "published" WHERE si.user_id = ? AND ci.type = "admit_card"', [session.userId]))?.c || 0,
+};
+---
+
+<AccountLayout title="Saved Items" activeNav="/account/saved">
+  <div class="space-y-6">
+    
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Saved Recruitment & Exams</h1>
+        <p class="text-xs text-slate-500 mt-1">Bookmarked opportunities and upcoming deadlines</p>
+      </div>
+
+      <!-- Type Filter Tabs -->
+      <div class="flex items-center space-x-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold overflow-x-auto">
+        <a
+          href="/account/saved"
+          class={`px-3 py-1.5 rounded-lg transition-colors shrink-0 ${typeFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+        >
+          All ({counts.all})
+        </a>
+        <a
+          href="/account/saved?type=job"
+          class={`px-3 py-1.5 rounded-lg transition-colors shrink-0 ${typeFilter === 'job' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+        >
+          Jobs ({counts.job})
+        </a>
+        <a
+          href="/account/saved?type=result"
+          class={`px-3 py-1.5 rounded-lg transition-colors shrink-0 ${typeFilter === 'result' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+        >
+          Results ({counts.result})
+        </a>
+        <a
+          href="/account/saved?type=admit_card"
+          class={`px-3 py-1.5 rounded-lg transition-colors shrink-0 ${typeFilter === 'admit_card' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+        >
+          Admit Cards ({counts.admit_card})
+        </a>
+      </div>
+    </div>
+
+    <!-- Items Grid -->
+    {savedItems.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {savedItems.map((item) => (
+          <div class="relative group">
+            {item.type === 'job' ? (
+              <JobCard job={item} />
+            ) : (
+              <ContentCard item={item} />
+            )}
+            <button
+              type="button"
+              data-id={item.id}
+              class="unsave-btn absolute top-3 right-3 bg-white/90 hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-200 text-[11px] font-bold px-2 py-1 rounded-lg shadow-xs transition-all opacity-90 group-hover:opacity-100"
+              title="Remove from saved items"
+            >
+              ✕ Remove
+            </button>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <EmptyState
+        title="No Saved Items in this Category"
+        message="Browse public jobs or exam results and click 'Save Job' to access them quickly here."
+        actionUrl="/jobs"
+        actionLabel="Explore Latest Jobs"
+      />
+    )}
+
+  </div>
+</AccountLayout>
+
+<script>
+  document.querySelectorAll('.unsave-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const contentItemId = btn.getAttribute('data-id');
+      if (!contentItemId) return;
+
+      try {
+        const res = await fetch('/api/user/saved', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contentItemId }),
+        });
+        const data = (await res.json()) as any;
+        if (data.success) {
+          window.location.reload();
+        }
+      } catch {}
+    });
+  });
+</script>

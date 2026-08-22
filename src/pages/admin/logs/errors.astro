@@ -1,0 +1,153 @@
+---
+// src/pages/admin/logs/errors.astro
+// Structured Error Log Viewer & Resolution Manager
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import type { ErrorLogRecord } from '../../../lib/logging/error_logger.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const serviceFilter = Astro.url.searchParams.get('service') || '';
+const severityFilter = Astro.url.searchParams.get('severity') || '';
+
+const conditions: string[] = ['1=1'];
+const params: any[] = [];
+
+if (serviceFilter) {
+  conditions.push('service = ?');
+  params.push(serviceFilter);
+}
+
+if (severityFilter) {
+  conditions.push('severity = ?');
+  params.push(severityFilter);
+}
+
+const errors = (await db.query<ErrorLogRecord>(`
+  SELECT * FROM error_logs
+  WHERE ${conditions.join(' AND ')}
+  ORDER BY created_at DESC
+  LIMIT 100
+`, params)).results;
+
+const stats = {
+  total: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM error_logs'))?.c || 0,
+  unresolved: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM error_logs WHERE resolved = 0'))?.c || 0,
+  critical: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM error_logs WHERE severity = "critical" AND resolved = 0'))?.c || 0,
+};
+---
+
+<AdminLayout title="System Error Logs">
+  <div class="space-y-6">
+    
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Structured Error Logs</h1>
+        <p class="text-xs text-slate-500 mt-1">Audit, investigate, and resolve captured system, crawler, AI, and worker exceptions.</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Recorded</span>
+        <span class="text-2xl font-black text-slate-900 mt-1 block">{stats.total}</span>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Unresolved</span>
+        <span class={`text-2xl font-black mt-1 block ${stats.unresolved > 0 ? 'text-amber-600' : 'text-slate-900'}`}>{stats.unresolved}</span>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Critical</span>
+        <span class={`text-2xl font-black mt-1 block ${stats.critical > 0 ? 'text-rose-600' : 'text-slate-900'}`}>{stats.critical}</span>
+      </div>
+    </div>
+
+    <!-- Errors Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Logged Exceptions ({errors.length})</h2>
+      </div>
+
+      {errors.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-bold">
+                <th class="py-3 px-4">Service</th>
+                <th class="py-3 px-4">Severity</th>
+                <th class="py-3 px-4">Code</th>
+                <th class="py-3 px-4">Message</th>
+                <th class="py-3 px-4">Timestamp</th>
+                <th class="py-3 px-4 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {errors.map((e) => (
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 px-4 font-mono font-bold text-slate-800">{e.service}</td>
+                  <td class="py-3 px-4">
+                    <span class={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                      e.severity === 'critical' ? 'bg-rose-100 text-rose-800' :
+                      e.severity === 'error' ? 'bg-orange-100 text-orange-800' :
+                      e.severity === 'warning' ? 'bg-amber-100 text-amber-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {e.severity}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 font-mono text-slate-600">{e.error_code}</td>
+                  <td class="py-3 px-4 text-slate-700 max-w-sm truncate" title={e.message}>{e.message}</td>
+                  <td class="py-3 px-4 text-slate-400">{new Date(e.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                  <td class="py-3 px-4 text-right">
+                    {e.resolved === 1 ? (
+                      <span class="text-emerald-700 font-bold text-[11px]">✓ Resolved</span>
+                    ) : (
+                      <button
+                        type="button"
+                        data-id={e.id}
+                        class="resolve-err-btn text-blue-600 hover:underline font-bold text-[11px]"
+                      >
+                        Mark Resolved
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="p-12 text-center text-slate-400">
+          <span class="text-3xl block mb-2">🛡️</span>
+          <p class="font-bold text-slate-700">No error logs recorded.</p>
+          <p class="text-xs text-slate-400 mt-1">All services and background workers are operating normally.</p>
+        </div>
+      )}
+    </div>
+
+  </div>
+</AdminLayout>
+
+<script>
+  document.querySelectorAll('.resolve-err-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const errorId = btn.getAttribute('data-id');
+      if (!errorId) return;
+
+      try {
+        const res = await fetch('/api/admin/logs/errors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ errorId }),
+        });
+        const data = (await res.json()) as any;
+        if (data.success) window.location.reload();
+      } catch {}
+    });
+  });
+</script>

@@ -1,0 +1,65 @@
+---
+// src/pages/important-updates/index.astro
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentCard from '../../components/ContentCard.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import Pagination from '../../components/Pagination.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { getDb } from '../../lib/db.ts';
+import { getCategoryContent } from '../../lib/public_queries.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const url = new URL(Astro.request.url);
+const page = parseInt(url.searchParams.get('page') || '1', 10);
+
+const result = await getCategoryContent(db, 'important_update', {
+  page,
+  limit: 12,
+});
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Important Updates & Corrigendums' },
+];
+---
+
+<BaseLayout
+  title="Government Examination Notices & Important Updates 2026"
+  description="Latest official corrigendums, application deadline extensions, exam postponement circulars, and recruitment updates from central and state authorities."
+>
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <div class="my-6">
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+        Important Updates & Corrigendums 2026
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl">
+        Official circulars regarding date extensions, exam center changes, age relaxations, and revised vacancies.
+      </p>
+    </div>
+
+    {result.items.length > 0 ? (
+      <>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {result.items.map((item) => (
+            <ContentCard item={item} />
+          ))}
+        </div>
+
+        <Pagination
+          currentPage={result.page}
+          totalPages={result.totalPages}
+          baseUrl="/important-updates"
+        />
+      </>
+    ) : (
+      <EmptyState
+        title="No Urgent Notices"
+        message="Important circulars and corrigendums will be posted here as announced."
+      />
+    )}
+  </div>
+</BaseLayout>

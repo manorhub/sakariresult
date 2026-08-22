@@ -1,0 +1,114 @@
+---
+// src/pages/account/notifications.astro
+// User Notification Center
+
+import AccountLayout from '../../layouts/AccountLayout.astro';
+import { getDb } from '../../lib/db.ts';
+import type { UserSession, UserNotification } from '../../lib/user_auth.ts';
+
+const session = (Astro.locals as any).userSession as UserSession | null;
+if (!session) return Astro.redirect('/login');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const notifications = (await db.query<UserNotification>(`
+  SELECT n.*, ci.slug as content_slug, ci.type as content_type
+  FROM notifications n
+  LEFT JOIN content_items ci ON ci.id = n.content_item_id
+  WHERE n.user_id = ?
+  ORDER BY n.created_at DESC
+  LIMIT 50
+`, [session.userId])).results;
+
+const unreadCount = notifications.filter(n => !n.read_at).length;
+---
+
+<AccountLayout title="Notification Center" activeNav="/account/notifications">
+  <div class="space-y-6">
+    
+    <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Notification Center</h1>
+        <p class="text-xs text-slate-500 mt-1">Direct alerts for followed boards, saved jobs, and approaching deadlines</p>
+      </div>
+
+      {unreadCount > 0 && (
+        <button
+          type="button"
+          id="mark-all-read-btn"
+          class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors shadow-xs"
+        >
+          ✓ Mark All as Read
+        </button>
+      )}
+    </div>
+
+    {notifications.length > 0 ? (
+      <div class="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 shadow-xs overflow-hidden">
+        {notifications.map((n) => (
+          <div class={`p-5 flex items-start justify-between gap-4 transition-colors ${!n.read_at ? 'bg-blue-50/40' : 'hover:bg-slate-50'}`}>
+            <div class="space-y-1 min-w-0">
+              <div class="flex items-center space-x-2 flex-wrap">
+                <span class={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                  n.type === 'job_alert' ? 'bg-blue-100 text-blue-800' :
+                  n.type === 'result_alert' ? 'bg-emerald-100 text-emerald-800' :
+                  n.type === 'admit_card_alert' ? 'bg-amber-100 text-amber-900' :
+                  n.type === 'deadline_reminder' ? 'bg-rose-100 text-rose-800' :
+                  'bg-slate-100 text-slate-700'
+                }`}>
+                  {n.type.replace('_', ' ')}
+                </span>
+                <span class="font-bold text-slate-900 text-xs sm:text-sm">{n.title}</span>
+                {!n.read_at && (
+                  <span class="w-2 h-2 rounded-full bg-rose-500 shrink-0" title="Unread"></span>
+                )}
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed">{n.message}</p>
+              <span class="text-[10px] text-slate-400 block pt-1">
+                {new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+
+            <div class="flex items-center space-x-2 shrink-0">
+              {n.content_slug && (
+                <a
+                  href={`/${n.content_type === 'job' ? 'jobs' : (n.content_type || '').replace('_', '-')}/${n.content_slug}`}
+                  class="px-3 py-1.5 bg-gov-navy hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
+                >
+                  View Details &rarr;
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
+        <span class="text-3xl block mb-2">🔔</span>
+        <h2 class="text-base font-bold text-slate-800 mb-1">Your notification inbox is clean</h2>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto">
+          When new notifications are published for your followed commissions or saved jobs, they will appear here.
+        </p>
+      </div>
+    )}
+
+  </div>
+</AccountLayout>
+
+<script>
+  const markAllBtn = document.getElementById('mark-all-read-btn');
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/user/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ markAllRead: true }),
+        });
+        const data = (await res.json()) as any;
+        if (data.success) window.location.reload();
+      } catch {}
+    });
+  }
+</script>

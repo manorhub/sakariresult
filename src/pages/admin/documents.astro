@@ -1,0 +1,97 @@
+---
+// src/pages/admin/documents.astro
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/db';
+import { R2_STORAGE_PATHS } from '../../lib/r2';
+import { formatDate } from '../../lib/utils';
+import type { SourceDocument } from '../../lib/types';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const documents = (await db.query<SourceDocument>(`
+  SELECT * FROM source_documents
+  ORDER BY created_at DESC
+  LIMIT 50
+`)).results;
+
+const storageFolders = [
+  { name: 'Official Documents', path: R2_STORAGE_PATHS.DOCUMENTS, desc: 'Recruitment PDFs, syllabus circulars, and official gazettes' },
+  { name: 'Portal Images', path: R2_STORAGE_PATHS.IMAGES, desc: 'Public content illustrations and infographics' },
+  { name: 'Organization Logos', path: R2_STORAGE_PATHS.LOGOS, desc: 'Official commission & board emblems' },
+  { name: 'Generated Assets', path: R2_STORAGE_PATHS.GENERATED, desc: 'System-generated tables and structured formats' },
+  { name: 'Social OG Images', path: R2_STORAGE_PATHS.OG_IMAGES, desc: 'Dynamic social media preview cards' },
+];
+---
+
+<AdminLayout title="Cloudflare R2 Storage & Documents" subtitle="Logical storage structure, object tracking, and uploaded official documents." activeNav="/admin/documents">
+  
+  <!-- Storage Folders Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+    {storageFolders.map((f) => (
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+        <div class="flex items-center space-x-2 text-blue-600 mb-2">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          <span class="font-mono text-xs font-bold text-slate-800">{f.path}/</span>
+        </div>
+        <h4 class="text-xs font-bold text-slate-900">{f.name}</h4>
+        <p class="text-[11px] text-slate-500 mt-1">{f.desc}</p>
+      </div>
+    ))}
+  </div>
+
+  <!-- Documents Table -->
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+      <div>
+        <h2 class="text-base font-bold text-slate-900">Stored Source Documents</h2>
+        <p class="text-xs text-slate-500">Tracked files and PDF records archived in R2</p>
+      </div>
+      <span class="text-xs text-slate-400 font-mono">Phase 1 Storage Foundation Active</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-600">
+        <thead class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-3.5">R2 Key / Path</th>
+            <th class="px-6 py-3.5">Original URL</th>
+            <th class="px-6 py-3.5">File Type</th>
+            <th class="px-6 py-3.5">File Size</th>
+            <th class="px-6 py-3.5">Archived Date</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {documents.length === 0 ? (
+            <tr>
+              <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                <svg class="w-10 h-10 text-slate-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <p class="font-medium text-slate-600">No documents stored in Phase 1 yet.</p>
+                <p class="text-[11px] text-slate-400 mt-1">Storage paths and server-side utilities are initialized and ready for crawler extraction in Phase 2.</p>
+              </td>
+            </tr>
+          ) : (
+            documents.map((doc) => (
+              <tr class="hover:bg-slate-50">
+                <td class="px-6 py-4 font-mono font-bold text-slate-900">{doc.r2_key}</td>
+                <td class="px-6 py-4">
+                  <a href={doc.source_url} target="_blank" class="text-blue-600 hover:underline truncate block max-w-xs">
+                    {doc.source_url}
+                  </a>
+                </td>
+                <td class="px-6 py-4 uppercase font-mono">{doc.file_type}</td>
+                <td class="px-6 py-4">{Math.round(doc.file_size / 1024)} KB</td>
+                <td class="px-6 py-4 text-slate-400">{formatDate(doc.created_at)}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</AdminLayout>

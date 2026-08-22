@@ -1,0 +1,146 @@
+---
+// src/components/JobCard.astro
+import type { PublicJobItem } from '../lib/public_queries.ts';
+
+export interface Props {
+  item?: PublicJobItem | any;
+  job?: PublicJobItem | any;
+  featured?: boolean;
+}
+
+const { item: propItem, job: propJob, featured = false } = Astro.props;
+const jobItem: PublicJobItem = propJob || propItem;
+
+if (!jobItem) return null;
+
+const targetUrl = `/jobs/${jobItem.slug}`;
+const vacancies = jobItem.total_vacancies || jobItem.job_details?.vacancy;
+const qualification = jobItem.qualification || jobItem.job_details?.qualification;
+const lastDate = jobItem.application_last_date || jobItem.job_details?.application_last_date;
+const salary = jobItem.salary || jobItem.job_details?.salary;
+const status = jobItem.calculated_status || 'Open';
+
+let isEndingSoon = status === 'Closing Soon';
+---
+
+<article class={`bg-white rounded-xl border transition-all duration-200 hover:shadow-md flex flex-col justify-between ${featured ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200 hover:border-gov-navy/40'}`}>
+  <div class="p-4 sm:p-5">
+    
+    <!-- Top Meta Row -->
+    <div class="flex flex-wrap items-center justify-between gap-1.5 mb-2.5">
+      <div class="flex items-center space-x-1.5 flex-wrap">
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 uppercase">
+          Govt Job
+        </span>
+        {jobItem.organization_name && (
+          <span class="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded truncate max-w-[170px]">
+            {jobItem.organization_name}
+          </span>
+        )}
+      </div>
+
+      {status && (
+        <span class={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+          isEndingSoon 
+            ? 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'
+            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+        }`}>
+          {status}
+        </span>
+      )}
+    </div>
+
+    <!-- Title -->
+    <h3 class="text-sm sm:text-base font-bold text-slate-900 leading-snug mb-2 group-hover:text-gov-navy line-clamp-2">
+      <a href={targetUrl} class="hover:text-gov-navy transition-colors">
+        {jobItem.title}
+      </a>
+    </h3>
+
+    <!-- Details Grid -->
+    <div class="grid grid-cols-2 gap-2 py-2.5 my-2 border-y border-slate-100 text-xs text-slate-600">
+      {vacancies && (
+        <div>
+          <span class="block text-slate-400 text-[10px] uppercase font-bold">Total Posts</span>
+          <span class="font-bold text-slate-800">{vacancies} Posts</span>
+        </div>
+      )}
+      {qualification && (
+        <div>
+          <span class="block text-slate-400 text-[10px] uppercase font-bold">Qualification</span>
+          <span class="font-semibold text-slate-800 truncate block">{qualification}</span>
+        </div>
+      )}
+      {lastDate && (
+        <div>
+          <span class="block text-slate-400 text-[10px] uppercase font-bold">Last Date</span>
+          <span class={`font-bold ${isEndingSoon ? 'text-rose-600' : 'text-slate-800'}`}>
+            {lastDate}
+          </span>
+        </div>
+      )}
+      {salary && (
+        <div>
+          <span class="block text-slate-400 text-[10px] uppercase font-bold">Salary / Pay Scale</span>
+          <span class="font-semibold text-slate-800 truncate block">{salary}</span>
+        </div>
+      )}
+    </div>
+
+  </div>
+
+  <!-- Bottom Actions -->
+  <div class="px-4 pb-4 sm:px-5 sm:pb-5 pt-0 flex items-center justify-between text-xs gap-2">
+    <button
+      type="button"
+      data-job-id={jobItem.id}
+      class="save-job-btn inline-flex items-center space-x-1 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all"
+    >
+      <span>🔖</span>
+      <span class="btn-text">Save Job</span>
+    </button>
+    <a 
+      href={targetUrl}
+      class="inline-flex items-center px-3 py-1.5 font-bold text-xs text-gov-navy bg-slate-100 hover:bg-gov-navy hover:text-white rounded-lg transition-colors"
+    >
+      Details &rarr;
+    </a>
+  </div>
+</article>
+
+<script>
+  document.querySelectorAll('.save-job-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const contentItemId = btn.getAttribute('data-job-id');
+      if (!contentItemId) return;
+
+      const textEl = btn.querySelector('.btn-text');
+
+      try {
+        const res = await fetch('/api/user/saved', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contentItemId }),
+        });
+
+        if (res.status === 401) {
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+
+        const data = (await res.json()) as any;
+        if (data.success && textEl) {
+          if (data.saved) {
+            textEl.textContent = 'Saved ✓';
+            btn.classList.add('text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
+          } else {
+            textEl.textContent = 'Save Job';
+            btn.classList.remove('text-emerald-700', 'bg-emerald-50', 'border-emerald-200');
+          }
+        }
+      } catch {}
+    });
+  });
+</script>

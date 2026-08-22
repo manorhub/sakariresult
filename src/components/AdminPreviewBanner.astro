@@ -1,0 +1,37 @@
+---
+// src/components/AdminPreviewBanner.astro
+interface Props {
+  status: string;
+  itemId?: string;
+}
+
+const { status, itemId } = Astro.props;
+---
+
+<div class="bg-amber-500 text-slate-950 font-bold px-4 py-3 text-center border-b-2 border-amber-600 shadow-md flex items-center justify-between text-xs sticky top-0 z-50">
+  <div class="flex items-center space-x-2">
+    <span class="bg-slate-900 text-amber-400 uppercase text-[10px] px-2 py-0.5 rounded font-black tracking-wider">
+      Admin Preview Mode
+    </span>
+    <span>
+      This content item is in <strong class="uppercase underline">{status}</strong> status and is <strong>NOT PUBLICLY VISIBLE</strong> to regular visitors.
+    </span>
+  </div>
+
+  <div class="flex items-center space-x-2">
+    {itemId && (
+      <a
+        href={`/admin/content/${itemId}`}
+        class="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1 rounded text-xs transition-colors"
+      >
+        Edit in Admin
+      </a>
+    )}
+    <a
+      href="/admin/content/review"
+      class="bg-amber-700 hover:bg-amber-800 text-white px-3 py-1 rounded text-xs transition-colors"
+    >
+      Review Queue
+    </a>
+  </div>
+</div>

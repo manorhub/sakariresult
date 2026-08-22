@@ -1,0 +1,83 @@
+---
+// src/pages/404.astro
+// User-Friendly 404 Not Found Page with Search and Latest Content Links
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SearchBox from '../components/SearchBox.astro';
+import JobCard from '../components/JobCard.astro';
+import ContentCard from '../components/ContentCard.astro';
+import { getDb } from '../lib/db.ts';
+import { getHomepageData } from '../lib/public_queries.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const data = await getHomepageData(db);
+---
+
+<BaseLayout
+  title="404 — Page Not Found | Sarkari Info"
+  description="The requested page could not be found. Search latest government jobs, exam results, and admit cards on Sarkari Info."
+  noindex={true}
+>
+  <div class="max-w-5xl mx-auto px-4 py-12 text-center">
+    
+    <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-50 text-gov-saffron border border-amber-200 text-3xl font-black mb-4">
+      404
+    </div>
+
+    <h1 class="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+      Page Not Found / Expired Notice
+    </h1>
+
+    <p class="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto mt-2 mb-6">
+      The link you followed may have expired, or the URL might have been mistyped. Use the search bar below or explore current active recruitment updates.
+    </p>
+
+    <!-- Search Section -->
+    <div class="max-w-2xl mx-auto text-left mb-10">
+      <SearchBox placeholder="Search for jobs, exams, results..." />
+    </div>
+
+    <div class="flex items-center justify-center space-x-3 mb-12">
+      <a href="/" class="px-5 py-2.5 rounded-xl bg-gov-navy hover:bg-slate-900 text-white text-xs font-bold shadow-xs transition-colors">
+        &larr; Return to Homepage
+      </a>
+      <a href="/jobs" class="px-5 py-2.5 rounded-xl bg-gov-saffron hover:bg-orange-600 text-white text-xs font-bold shadow-xs transition-colors">
+        Browse All Jobs &rarr;
+      </a>
+    </div>
+
+    <!-- Latest Jobs & Results Suggestions -->
+    <div class="text-left space-y-8 border-t border-slate-200 pt-8">
+      
+      {data.latestJobs.length > 0 && (
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-900 uppercase tracking-wider mb-3">
+            Latest Active Government Jobs
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data.latestJobs.slice(0, 3).map((job) => (
+              <JobCard job={job} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.latestResults.length > 0 && (
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-900 uppercase tracking-wider mb-3">
+            Recently Declared Results
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data.latestResults.slice(0, 3).map((item) => (
+              <ContentCard item={item} />
+            ))}
+          </div>
+        </div>
+      )}
+
+    </div>
+
+  </div>
+</BaseLayout>

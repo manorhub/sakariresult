@@ -1,0 +1,66 @@
+---
+// src/pages/admin/settings/flags.astro
+// Feature Flags Management Page
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import { getAllFeatureFlags } from '../../../lib/settings.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const flags = await getAllFeatureFlags(db);
+---
+
+<AdminLayout title="Feature Flags">
+  <div class="max-w-4xl space-y-6">
+    
+    <div class="pb-3 border-b border-slate-200">
+      <h1 class="text-2xl font-black text-slate-900 tracking-tight">Feature Flags & Module Switches</h1>
+      <p class="text-xs text-slate-500 mt-1">Safely enable or disable platform capabilities in real time without downtime or redeploying code.</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs divide-y divide-slate-100 overflow-hidden">
+      {flags.map((flag) => (
+        <div class="p-5 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
+          <div class="space-y-0.5">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs sm:text-sm font-bold text-slate-900">{flag.name}</span>
+              <span class="font-mono text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded">{flag.key}</span>
+            </div>
+            <p class="text-xs text-slate-500">{flag.description}</p>
+          </div>
+
+          <label class="relative inline-flex items-center cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              data-key={flag.key}
+              checked={flag.enabled === 1}
+              class="flag-toggle sr-only peer"
+            />
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gov-navy"></div>
+          </label>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</AdminLayout>
+
+<script>
+  document.querySelectorAll('.flag-toggle').forEach((toggle) => {
+    toggle.addEventListener('change', async (e) => {
+      const input = e.target as HTMLInputElement;
+      const key = input.getAttribute('data-key');
+      const enabled = input.checked;
+
+      try {
+        await fetch('/api/admin/flags', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, enabled }),
+        });
+      } catch {}
+    });
+  });
+</script>

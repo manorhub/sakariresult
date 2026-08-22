@@ -1,0 +1,89 @@
+---
+// src/pages/admin/system-health/index.astro
+// Live System Health & Service Diagnostic Monitor
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import { runSystemHealthCheck } from '../../../lib/system_health.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const env = (Astro.locals as any)?.runtime?.env;
+const db = getDb(d1);
+
+const healthReport = await runSystemHealthCheck(db, env);
+---
+
+<AdminLayout title="System Health & Infrastructure Monitor">
+  <div class="space-y-6">
+    
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">System Health & Infrastructure</h1>
+        <p class="text-xs text-slate-500 mt-1">Real-time health audits across database, storage, AI engine, crawler, and queues.</p>
+      </div>
+
+      <button
+        type="button"
+        onclick="window.location.reload();"
+        class="px-4 py-2 bg-gov-navy hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0"
+      >
+        🔄 Refresh Health Diagnostics
+      </button>
+    </div>
+
+    <!-- Overall State Banner -->
+    <div class={`p-5 rounded-2xl border flex items-center justify-between shadow-xs ${
+      healthReport.overall === 'healthy' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' :
+      healthReport.overall === 'degraded' ? 'bg-amber-50 border-amber-200 text-amber-900' :
+      'bg-rose-50 border-rose-200 text-rose-900'
+    }`}>
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">
+          {healthReport.overall === 'healthy' ? '🟢' : healthReport.overall === 'degraded' ? '🟡' : '🔴'}
+        </span>
+        <div>
+          <h2 class="text-sm sm:text-base font-black uppercase tracking-wide">
+            Platform Status: {healthReport.overall.toUpperCase()}
+          </h2>
+          <p class="text-xs opacity-80 mt-0.5">
+            Diagnostic audited at {new Date(healthReport.timestamp).toLocaleTimeString('en-IN')} IST
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Services Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {healthReport.services.map((s) => (
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between space-y-3">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-700">
+                {s.service.replace('_', ' ')}
+              </span>
+              <span class={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                s.status === 'healthy' ? 'bg-emerald-100 text-emerald-800' :
+                s.status === 'degraded' ? 'bg-amber-100 text-amber-800' :
+                'bg-rose-100 text-rose-800'
+              }`}>
+                {s.status}
+              </span>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+              {s.message}
+            </p>
+          </div>
+
+          {s.latencyMs !== undefined && (
+            <div class="pt-3 border-t border-slate-100 text-[11px] font-mono text-slate-400 flex justify-between">
+              <span>Latency:</span>
+              <span class="font-bold text-slate-700">{s.latencyMs} ms</span>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+
+  </div>
+</AdminLayout>

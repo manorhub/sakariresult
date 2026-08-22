@@ -1,0 +1,245 @@
+---
+// src/pages/admin/sources/[id].astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db';
+import type { Source } from '../../../lib/types';
+
+const id = Astro.params.id;
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const source = await db.first<Source>('SELECT * FROM sources WHERE id = ?', [id]);
+
+if (!source) {
+  return Astro.redirect('/admin/sources');
+}
+---
+
+<AdminLayout title={`Edit Source: ${source.name}`} subtitle="Modify feed endpoint, crawl frequency, and parser parameters." activeNav="/admin/sources">
+  
+  <div class="max-w-3xl bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+    <div id="form-alert" class="hidden mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700"></div>
+
+    <form id="source-edit-form" class="space-y-6" data-id={source.id}>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="name" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Source Name *
+          </label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            value={source.name}
+            required
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label for="base_url" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Base URL / Feed URL *
+          </label>
+          <input
+            type="url"
+            id="base_url"
+            name="base_url"
+            value={source.base_url}
+            required
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label for="source_type" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Source Type
+          </label>
+          <select
+            id="source_type"
+            name="source_type"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="HTML" selected={source.source_type === 'HTML'}>HTML Web Page</option>
+            <option value="RSS" selected={source.source_type === 'RSS'}>RSS Feed</option>
+            <option value="XML" selected={source.source_type === 'XML'}>XML Feed</option>
+            <option value="JSON" selected={source.source_type === 'JSON'}>JSON API</option>
+            <option value="PDF" selected={source.source_type === 'PDF'}>PDF Notice Directory</option>
+            <option value="Sitemap" selected={source.source_type === 'Sitemap'}>Sitemap XML</option>
+            <option value="Manual URL" selected={source.source_type === 'Manual URL'}>Manual URL</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="parser_type" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Parser Type
+          </label>
+          <select
+            id="parser_type"
+            name="parser_type"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="standard" selected={source.parser_type === 'standard'}>Standard Parser</option>
+            <option value="rss_atom" selected={source.parser_type === 'rss_atom'}>RSS / Atom Parser</option>
+            <option value="table_scraper" selected={source.parser_type === 'table_scraper'}>HTML Table Scraper</option>
+            <option value="json_feed" selected={source.parser_type === 'json_feed'}>JSON Feed Parser</option>
+            <option value="pdf_extractor" selected={source.parser_type === 'pdf_extractor'}>PDF Notice Extractor</option>
+            <option value="sitemap_xml" selected={source.parser_type === 'sitemap_xml'}>Sitemap Parser</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="crawl_frequency" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Crawl Frequency
+          </label>
+          <select
+            id="crawl_frequency"
+            name="crawl_frequency"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="hourly" selected={source.crawl_frequency === 'hourly'}>Hourly</option>
+            <option value="daily" selected={source.crawl_frequency === 'daily'}>Daily</option>
+            <option value="weekly" selected={source.crawl_frequency === 'weekly'}>Weekly</option>
+            <option value="manual" selected={source.crawl_frequency === 'manual'}>Manual Only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label for="priority" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Priority (1=High, 5=Low)
+          </label>
+          <select
+            id="priority"
+            name="priority"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="1" selected={source.priority === 1}>Priority 1 (Immediate / High)</option>
+            <option value="2" selected={source.priority === 2}>Priority 2 (Important)</option>
+            <option value="3" selected={source.priority === 3}>Priority 3 (Normal)</option>
+            <option value="4" selected={source.priority === 4}>Priority 4 (Low)</option>
+            <option value="5" selected={source.priority === 5}>Priority 5 (Periodic)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="trust_level" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Trust Level (1 - 5 Stars)
+          </label>
+          <select
+            id="trust_level"
+            name="trust_level"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="5" selected={source.trust_level === 5}>5 - Official Govt Commission / Ministry</option>
+            <option value="4" selected={source.trust_level === 4}>4 - State Board / University</option>
+            <option value="3" selected={source.trust_level === 3}>3 - Standard Official Agency</option>
+            <option value="2" selected={source.trust_level === 2}>2 - Secondary Notification</option>
+            <option value="1" selected={source.trust_level === 1}>1 - Experimental Feed</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="status" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Status
+          </label>
+          <select
+            id="status"
+            name="status"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="active" selected={source.status === 'active'}>Active</option>
+            <option value="paused" selected={source.status === 'paused'}>Paused</option>
+            <option value="disabled" selected={source.status === 'disabled'}>Disabled</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 pt-2">
+        <input
+          type="checkbox"
+          id="robots_allowed"
+          name="robots_allowed"
+          value="1"
+          checked={Boolean(source.robots_allowed)}
+          class="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        />
+        <label for="robots_allowed" class="text-xs text-slate-700 font-medium">
+          Respect Robots.txt and crawler rate limits for this source
+        </label>
+      </div>
+
+      <div class="pt-4 border-t border-slate-200 flex items-center justify-end space-x-3">
+        <a
+          href="/admin/sources"
+          class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+        >
+          Cancel
+        </a>
+        <button
+          type="submit"
+          id="btn-save"
+          class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-colors cursor-pointer"
+        >
+          Save Changes
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('source-edit-form') as HTMLFormElement;
+  const alertBox = document.getElementById('form-alert');
+  const btnSave = document.getElementById('btn-save') as HTMLButtonElement;
+  const sourceId = form?.getAttribute('data-id');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (alertBox) alertBox.classList.add('hidden');
+    if (btnSave) btnSave.disabled = true;
+
+    const formData = new FormData(form);
+    const payload = {
+      name: formData.get('name'),
+      base_url: formData.get('base_url'),
+      source_type: formData.get('source_type'),
+      parser_type: formData.get('parser_type'),
+      crawl_frequency: formData.get('crawl_frequency'),
+      priority: Number(formData.get('priority')),
+      trust_level: Number(formData.get('trust_level')),
+      status: formData.get('status'),
+      robots_allowed: formData.get('robots_allowed') === '1' ? 1 : 0,
+    };
+
+    try {
+      const res = await fetch(`/api/admin/sources/${sourceId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await res.json()) as any;
+      if (res.ok && data.success) {
+        window.location.href = '/admin/sources';
+      } else {
+        if (alertBox) {
+          alertBox.textContent = data.error || 'Failed to update source.';
+          alertBox.classList.remove('hidden');
+        }
+      }
+    } catch (err: any) {
+      if (alertBox) {
+        alertBox.textContent = 'Server communication error.';
+        alertBox.classList.remove('hidden');
+      }
+    } finally {
+      if (btnSave) btnSave.disabled = false;
+    }
+  });
+</script>

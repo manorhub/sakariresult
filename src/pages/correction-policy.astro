@@ -1,0 +1,60 @@
+---
+// src/pages/correction-policy.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Correction & Update Policy' },
+];
+---
+
+<BaseLayout
+  title="Fact-Checking & Correction Policy — Sarkari Info"
+  description="How Sarkari Info handles official corrigendums, date extensions, typographical corrections, and reader dispute submissions."
+>
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-6">
+      <header class="border-b border-slate-200 pb-4">
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          Fact-Checking & Correction Policy
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Last Updated: January 2026 &bull; Transparent Corrigendum & Error Resolution
+        </p>
+      </header>
+
+      <div class="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
+        <h2 class="text-base font-bold text-slate-900 pt-2">1. Handling Official Corrigendums & Addendums</h2>
+        <p>
+          Government authorities frequently issue corrigendums regarding deadline extensions, vacancy revisions, syllabus modifications, or exam center updates. When an official addendum is published:
+        </p>
+        <ul class="list-disc pl-5 space-y-1">
+          <li>The existing article is updated with the latest verified data.</li>
+          <li>A visible <strong class="text-amber-700 font-bold">"Detected Update / Corrigendum"</strong> notice is displayed at the top of the article.</li>
+          <li>Prior versions of the notification are immutably archived in our version history log for audit and reference.</li>
+        </ul>
+
+        <h2 class="text-base font-bold text-slate-900 pt-2">2. Reader Error Reporting Protocol</h2>
+        <p>
+          If you identify an inadvertent typographical error, date mismatch, or broken link on any of our pages, please notify our editorial desk immediately via our <a href="/contact" class="text-blue-600 font-bold hover:underline">Contact Portal</a>.
+        </p>
+        <p>
+          When submitting a correction request, please provide:
+        </p>
+        <ul class="list-disc pl-5 space-y-1">
+          <li>URL of the specific page on Sarkari Info.</li>
+          <li>The specific field or sentence in question.</li>
+          <li>Link to the official government notification / gazette proving the discrepancy.</li>
+        </ul>
+
+        <h2 class="text-base font-bold text-slate-900 pt-2">3. Resolution Timeline</h2>
+        <p>
+          Reported discrepancies are verified against primary sources within <strong>2 to 4 business hours</strong>. If a factual error is confirmed, the article is corrected immediately, and the revision timestamp is updated.
+        </p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

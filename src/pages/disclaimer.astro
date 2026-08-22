@@ -1,0 +1,44 @@
+---
+// src/pages/disclaimer.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+---
+
+<BaseLayout
+  title="Official Disclaimer & Legal Notice — Sarkari Info"
+  description="Important official disclaimer clarifying non-affiliation with any government department or commission."
+>
+  <Breadcrumbs items={[{ name: 'Disclaimer' }]} />
+
+  <div class="max-w-4xl mx-auto px-4 py-10">
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-6 text-xs sm:text-sm text-slate-700 leading-relaxed">
+      
+      <div class="border-b border-slate-100 pb-4">
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight text-rose-700">
+          Official Disclaimer
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">Please read carefully before using this portal.</p>
+      </div>
+
+      <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-medium">
+        <strong>Non-Government Entity Notice:</strong> Sarkari Info is NOT a government website and is NOT affiliated, associated, authorized, endorsed by, or in any way officially connected with the Government of India, any State Government, Union Territory Administration, or any of their statutory boards, commissions, or agencies.
+      </div>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">1. Nature of the Portal</h2>
+      <p>
+        Sarkari Info is an independent informational and news aggregation portal designed to help students, candidates, and job-seekers easily discover public notifications published across diverse official sources.
+      </p>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">2. Verification with Official Sources</h2>
+      <p>
+        While all reasonable efforts are made to verify information against official gazettes, press releases, and employment news, errors or subsequent amendments may occur. Candidates must ALWAYS refer to the official notifications published on the recruiting commission's official website (such as UPSC, SSC, IBPS, NTA, CBSE, State PSCs) before submitting applications, paying fees, or making travel plans.
+      </p>
+
+      <h2 class="text-base font-bold text-slate-900 pt-2">3. Limitation of Liability</h2>
+      <p>
+        Sarkari Info and its operators will not be liable for any losses, injuries, missed deadlines, or damages arising from the use of or inability to use the information provided on this website.
+      </p>
+
+    </div>
+  </div>
+</BaseLayout>

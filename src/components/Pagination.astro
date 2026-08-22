@@ -1,0 +1,117 @@
+---
+// src/components/Pagination.astro
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  baseUrl?: string;
+  searchParams?: Record<string, string | number | undefined>;
+}
+
+const { currentPage, totalPages, baseUrl, searchParams = {} } = Astro.props;
+
+if (totalPages <= 1) return null;
+
+function buildPageUrl(pageNum: number): string {
+  const url = new URL(Astro.request.url);
+  if (baseUrl) {
+    url.pathname = baseUrl;
+  }
+  
+  // Set page parameter
+  if (pageNum <= 1) {
+    url.searchParams.delete('page');
+  } else {
+    url.searchParams.set('page', String(pageNum));
+  }
+
+  // Preserve other filters
+  for (const [k, v] of Object.entries(searchParams)) {
+    if (k !== 'page' && v !== undefined && v !== '') {
+      url.searchParams.set(k, String(v));
+    }
+  }
+
+  return url.pathname + url.search;
+}
+
+// Generate page window (e.g. 1 2 3 ... 10)
+const pages: (number | string)[] = [];
+const delta = 2;
+const left = Math.max(2, currentPage - delta);
+const right = Math.min(totalPages - 1, currentPage + delta);
+
+pages.push(1);
+if (left > 2) pages.push('...');
+for (let i = left; i <= right; i++) {
+  pages.push(i);
+}
+if (right < totalPages - 1) pages.push('...');
+if (totalPages > 1) pages.push(totalPages);
+---
+
+<nav class="flex items-center justify-center space-x-1 sm:space-x-2 my-8 select-none" aria-label="Pagination Navigation">
+  
+  <!-- Previous Button -->
+  {currentPage > 1 ? (
+    <a
+      href={buildPageUrl(currentPage - 1)}
+      class="px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-gov-navy transition-colors flex items-center space-x-1"
+      aria-label="Go to previous page"
+    >
+      <span>&larr;</span>
+      <span class="hidden sm:inline">Previous</span>
+    </a>
+  ) : (
+    <span class="px-3 py-2 text-xs font-semibold text-slate-300 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed flex items-center space-x-1" aria-disabled="true">
+      <span>&larr;</span>
+      <span class="hidden sm:inline">Previous</span>
+    </span>
+  )}
+
+  <!-- Page Numbers -->
+  <div class="flex items-center space-x-1">
+    {pages.map((p) => {
+      if (p === '...') {
+        return <span class="px-2 py-1 text-xs text-slate-400">&hellip;</span>;
+      }
+
+      const pageNum = Number(p);
+      const isCurrent = pageNum === currentPage;
+
+      return isCurrent ? (
+        <span
+          class="px-3.5 py-2 text-xs font-bold text-white bg-gov-navy border border-gov-navy rounded-lg shadow-xs"
+          aria-current="page"
+        >
+          {p}
+        </span>
+      ) : (
+        <a
+          href={buildPageUrl(pageNum)}
+          class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 hover:text-gov-navy transition-colors"
+          aria-label={`Go to page ${p}`}
+        >
+          {p}
+        </a>
+      );
+    })}
+  </div>
+
+  <!-- Next Button -->
+  {currentPage < totalPages ? (
+    <a
+      href={buildPageUrl(currentPage + 1)}
+      class="px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:text-gov-navy transition-colors flex items-center space-x-1"
+      aria-label="Go to next page"
+    >
+      <span class="hidden sm:inline">Next</span>
+      <span>&rarr;</span>
+    </a>
+  ) : (
+    <span class="px-3 py-2 text-xs font-semibold text-slate-300 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed flex items-center space-x-1" aria-disabled="true">
+      <span class="hidden sm:inline">Next</span>
+      <span>&rarr;</span>
+    </span>
+  )}
+
+</nav>

@@ -1,0 +1,333 @@
+---
+// src/pages/index.astro
+// Phase 4: Public Homepage for Sarkari Info Platform
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SearchBox from '../components/SearchBox.astro';
+import JobCard from '../components/JobCard.astro';
+import ContentCard from '../components/ContentCard.astro';
+import EmptyState from '../components/EmptyState.astro';
+import { getDb } from '../lib/db.ts';
+import { getHomepageData } from '../lib/public_queries.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const data = await getHomepageData(db);
+
+const qualifications = [
+  { label: '10th Pass Jobs', query: '10th', count: 'Matriculation level recruitment' },
+  { label: '12th Pass Jobs', query: '12th', count: 'Intermediate & Higher Secondary posts' },
+  { label: 'Graduate Jobs', query: 'Graduate', count: 'Degree & Professional vacancies' },
+  { label: 'Post Graduate Jobs', query: 'Post Graduate', count: 'Master degree & Specialist cadre' },
+];
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Sarkari Info',
+  url: Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in',
+  description: 'Fast, verified, and timely notifications for Indian Central & State Government Jobs, Exam Results, Admit Cards, and Schemes.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/search?q={search_term_string}`,
+    'query-input': 'required name=search_term_string',
+  },
+};
+---
+
+<BaseLayout
+  title="Sarkari Info — Latest Govt Jobs, Results, Admit Cards & Answer Keys 2026"
+  description="India's leading verified government jobs and results portal. Find latest recruitment notifications for UPSC, SSC, Railway RRB, Banking, Defence, and State PSCs."
+  jsonLd={websiteSchema}
+>
+
+  <!-- Hero Section -->
+  <section class="bg-gradient-to-b from-gov-navy to-slate-900 text-white pt-8 pb-12 px-4 border-b border-slate-800">
+    <div class="max-w-4xl mx-auto text-center space-y-4">
+      <div class="inline-flex items-center space-x-2 bg-gov-saffron/20 text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-gov-saffron/30">
+        <span>Official Government Alerts 2026</span>
+      </div>
+
+      <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+        Find Verified <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-gov-saffron">Government Jobs</span>, Results & Admit Cards
+      </h1>
+
+      <p class="text-xs sm:text-sm text-slate-300 max-w-2xl mx-auto">
+        Accurate and timely recruitment notices curated directly from official central and state government authorities.
+      </p>
+
+      <!-- Main Search Box -->
+      <div class="pt-3 max-w-2xl mx-auto text-left">
+        <SearchBox />
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Category Fast Access Strip -->
+  <section class="bg-white border-b border-slate-200 py-3.5 px-4 shadow-xs sticky top-[57px] sm:top-[61px] z-30">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar text-xs font-bold">
+      <div class="flex items-center space-x-2 shrink-0">
+        <a href="/jobs" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200 flex items-center space-x-1.5 transition-colors">
+          <span>💼 Latest Jobs</span>
+        </a>
+        <a href="/results" class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 flex items-center space-x-1.5 transition-colors">
+          <span>🏆 Results</span>
+        </a>
+        <a href="/admit-card" class="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200 flex items-center space-x-1.5 transition-colors">
+          <span>🎟️ Admit Cards</span>
+        </a>
+        <a href="/answer-key" class="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200 flex items-center space-x-1.5 transition-colors">
+          <span>🔑 Answer Keys</span>
+        </a>
+        <a href="/exams" class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 flex items-center space-x-1.5 transition-colors">
+          <span>📅 Exam Calendar</span>
+        </a>
+      </div>
+
+      <div class="shrink-0 hidden md:block">
+        <a href="/search" class="text-slate-500 hover:text-gov-navy font-semibold text-xs flex items-center space-x-1">
+          <span>Browse All</span>
+          <span>&rarr;</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Homepage Grid -->
+  <div class="max-w-7xl mx-auto px-4 py-8 space-y-12">
+
+    <!-- 1. Latest Government Jobs Grid -->
+    <section>
+      <div class="flex items-center justify-between border-b-2 border-slate-200 pb-3 mb-6">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-3 h-6 bg-gov-navy rounded-xs"></div>
+          <h2 class="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            Latest Government Jobs
+          </h2>
+        </div>
+        <a href="/jobs" class="text-xs sm:text-sm font-bold text-gov-navy hover:text-blue-700 flex items-center space-x-1">
+          <span>View All Jobs</span>
+          <span>&rarr;</span>
+        </a>
+      </div>
+
+      {data.latestJobs.length > 0 ? (
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {data.latestJobs.map((job) => (
+            <JobCard job={job} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No Published Jobs Found"
+          message="Published recruitment notifications will appear here automatically once curated."
+        />
+      )}
+    </section>
+
+    <!-- 2. Dual Column: Latest Results & Latest Admit Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      
+      <!-- Latest Results -->
+      <section class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">
+              Latest Results
+            </h2>
+          </div>
+          <a href="/results" class="text-xs font-bold text-emerald-700 hover:underline">
+            All Results &rarr;
+          </a>
+        </div>
+
+        {data.latestResults.length > 0 ? (
+          <div class="space-y-3">
+            {data.latestResults.map((item) => (
+              <ContentCard item={item} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No Results Available"
+            message="Newly released exam scorecards and merit lists will be published here."
+          />
+        )}
+      </section>
+
+      <!-- Latest Admit Cards -->
+      <section class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">
+              Latest Admit Cards
+            </h2>
+          </div>
+          <a href="/admit-card" class="text-xs font-bold text-amber-800 hover:underline">
+            All Admit Cards &rarr;
+          </a>
+        </div>
+
+        {data.latestAdmitCards.length > 0 ? (
+          <div class="space-y-3">
+            {data.latestAdmitCards.map((item) => (
+              <ContentCard item={item} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No Admit Cards Available"
+            message="Hall tickets and exam call letters will appear here once released."
+          />
+        )}
+      </section>
+
+    </div>
+
+    <!-- 3. Dual Column: Closing Soon & Latest Answer Keys -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      
+      <!-- Closing Soon Jobs -->
+      <section class="bg-rose-50/50 rounded-xl border border-rose-200 p-5 shadow-xs">
+        <div class="flex items-center justify-between border-b border-rose-200 pb-3 mb-4">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping"></span>
+            <h2 class="text-base sm:text-lg font-bold text-rose-950">
+              Closing Soon (Deadline Approaching)
+            </h2>
+          </div>
+          <a href="/jobs?sort=deadline" class="text-xs font-bold text-rose-800 hover:underline">
+            View Urgent &rarr;
+          </a>
+        </div>
+
+        {data.closingSoonJobs.length > 0 ? (
+          <div class="space-y-3">
+            {data.closingSoonJobs.map((job) => (
+              <ContentCard item={job} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No Urgent Deadlines"
+            message="Jobs with approaching deadlines will be flagged here."
+          />
+        )}
+      </section>
+
+      <!-- Latest Answer Keys -->
+      <section class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">
+              Latest Answer Keys & Objections
+            </h2>
+          </div>
+          <a href="/answer-key" class="text-xs font-bold text-purple-700 hover:underline">
+            All Answer Keys &rarr;
+          </a>
+        </div>
+
+        {data.latestAnswerKeys.length > 0 ? (
+          <div class="space-y-3">
+            {data.latestAnswerKeys.map((item) => (
+              <ContentCard item={item} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No Answer Keys Available"
+            message="Tentative and final official answer keys will be posted here."
+          />
+        )}
+      </section>
+
+    </div>
+
+    <!-- 4. Browse by Educational Qualification -->
+    <section class="bg-slate-100 rounded-2xl p-6 border border-slate-200">
+      <div class="text-center max-w-xl mx-auto mb-6">
+        <h2 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+          Browse Jobs by Educational Qualification
+        </h2>
+        <p class="text-xs text-slate-600 mt-1">
+          Filter recruitment openings tailored to your highest completed qualification.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {qualifications.map((q) => (
+          <a
+            href={`/jobs?qualification=${encodeURIComponent(q.query)}`}
+            class="bg-white rounded-xl p-4 border border-slate-200 hover:border-gov-navy hover:shadow-md transition-all group"
+          >
+            <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-sm mb-2 group-hover:bg-gov-navy group-hover:text-white transition-colors">
+              🎓
+            </div>
+            <h3 class="text-sm font-bold text-slate-900 group-hover:text-gov-navy">
+              {q.label}
+            </h3>
+            <p class="text-[11px] text-slate-500 mt-1 leading-snug">
+              {q.count}
+            </p>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- 5. Popular Categories & Organizations -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      
+      <!-- Categories with Content -->
+      {data.popularCategories.length > 0 && (
+        <section class="bg-white rounded-xl border border-slate-200 p-5">
+          <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+            Active Recruitment Categories
+          </h2>
+          <div class="flex flex-wrap gap-2">
+            {data.popularCategories.map((c) => (
+              <a
+                href={`/jobs?category=${c.slug}`}
+                class="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center space-x-1.5 transition-colors"
+              >
+                <span>{c.name}</span>
+                <span class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                  {c.count}
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- Organizations with Content -->
+      {data.popularOrganizations.length > 0 && (
+        <section class="bg-white rounded-xl border border-slate-200 p-5">
+          <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100">
+            Featured Authorities & Commissions
+          </h2>
+          <div class="flex flex-wrap gap-2">
+            {data.popularOrganizations.map((o) => (
+              <a
+                href={`/organizations/${o.slug}`}
+                class="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center space-x-1.5 transition-colors"
+              >
+                <span>{o.name}</span>
+                <span class="bg-gov-navy/10 text-gov-navy text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                  {o.count}
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+    </div>
+
+  </div>
+
+</BaseLayout>

@@ -1,0 +1,135 @@
+---
+import '../styles/global.css';
+import Sidebar from '../components/admin/Sidebar.astro';
+import type { AdminSession } from '../lib/types';
+
+export interface Props {
+  title: string;
+  subtitle?: string;
+  activeNav?: string;
+}
+
+const { title, subtitle, activeNav } = Astro.props;
+const session = (Astro.locals as any).adminSession as AdminSession | null;
+const adminName = session?.name || 'Administrator';
+const adminRole = session?.role || 'admin';
+---
+
+<!doctype html>
+<html lang="en" class="h-full bg-slate-900">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} | Admin Control Panel — Sarkari Info</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-full flex bg-slate-100 text-slate-800 antialiased font-sans">
+    
+    <!-- Sidebar (Desktop) -->
+    <div class="hidden md:flex md:flex-shrink-0">
+      <Sidebar currentPath={activeNav || Astro.url.pathname} adminName={adminName} adminRole={adminRole} />
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      
+      <!-- Top Navbar -->
+      <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 z-10 shadow-xs">
+        <div class="flex items-center space-x-3">
+          <!-- Mobile Menu Trigger -->
+          <button
+            id="admin-mobile-toggle"
+            type="button"
+            class="md:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100"
+            aria-label="Open Sidebar"
+          >
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          <div>
+            <h1 class="text-lg font-bold text-slate-900 leading-tight">{title}</h1>
+            {subtitle && <p class="text-xs text-slate-500">{subtitle}</p>}
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <a
+            href="/admin/content/new"
+            class="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Create Content</span>
+          </a>
+
+          <a
+            href="/admin/sources/new"
+            class="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Add Source</span>
+          </a>
+
+          <div class="h-6 w-px bg-slate-200 mx-1"></div>
+
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+            Online
+          </span>
+        </div>
+      </header>
+
+      <!-- Mobile Sidebar Overlay & Drawer -->
+      <div id="mobile-sidebar-drawer" class="fixed inset-0 z-50 flex hidden md:hidden">
+        <div id="mobile-sidebar-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
+        <div class="relative flex-1 flex flex-col max-w-xs w-full bg-slate-900 z-10 shadow-xl">
+          <div class="absolute top-2 right-2">
+            <button
+              id="admin-mobile-close"
+              type="button"
+              class="p-2 text-slate-400 hover:text-white"
+              aria-label="Close Sidebar"
+            >
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <Sidebar currentPath={activeNav || Astro.url.pathname} adminName={adminName} adminRole={adminRole} />
+        </div>
+      </div>
+
+      <!-- Main Body Container -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-8">
+        <div class="max-w-7xl mx-auto">
+          <slot />
+        </div>
+      </main>
+
+    </div>
+
+    <script>
+      const toggleBtn = document.getElementById('admin-mobile-toggle');
+      const closeBtn = document.getElementById('admin-mobile-close');
+      const drawer = document.getElementById('mobile-sidebar-drawer');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+
+      function openDrawer() {
+        drawer?.classList.remove('hidden');
+      }
+      function closeDrawer() {
+        drawer?.classList.add('hidden');
+      }
+
+      toggleBtn?.addEventListener('click', openDrawer);
+      closeBtn?.addEventListener('click', closeDrawer);
+      backdrop?.addEventListener('click', closeDrawer);
+    </script>
+  </body>
+</html>

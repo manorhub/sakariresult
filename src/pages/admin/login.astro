@@ -1,0 +1,157 @@
+---
+// src/pages/admin/login.astro
+import '../../styles/global.css';
+
+const defaultEmail = 'admin@sarkariinfo.org';
+---
+
+<!doctype html>
+<html lang="en" class="h-full bg-slate-900">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login — Sarkari Info Control Panel</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-full flex items-center justify-center p-4 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-slate-100 font-sans">
+    
+    <div class="w-full max-w-md">
+      
+      <!-- Brand Logo Header -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-gov-saffron to-amber-500 text-white font-black text-2xl shadow-lg mb-3">
+          SI
+        </div>
+        <h1 class="text-2xl font-black tracking-tight text-white">
+          SARKARI<span class="text-gov-saffron">ADMIN</span>
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">
+          Government Jobs & Results CMS Management
+        </p>
+      </div>
+
+      <!-- Login Card -->
+      <div class="bg-slate-800/80 backdrop-blur border border-slate-700/80 rounded-2xl p-6 sm:p-8 shadow-2xl">
+        
+        <div id="alert-error" class="hidden mb-5 p-3.5 rounded-lg bg-rose-950/60 border border-rose-600/50 text-xs text-rose-300 flex items-start space-x-2">
+          <svg class="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span id="alert-error-text">Invalid login credentials.</span>
+        </div>
+
+        <form id="login-form" class="space-y-4">
+          
+          <div>
+            <label for="email" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+              Admin Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={defaultEmail}
+              required
+              autocomplete="email"
+              class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/90 border border-slate-700 text-white text-sm focus:border-amber-400 focus:ring-1 focus:ring-amber-400 placeholder-slate-500"
+              placeholder="admin@sarkariinfo.org"
+            />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="password" class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Password
+              </label>
+            </div>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              autocomplete="current-password"
+              class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/90 border border-slate-700 text-white text-sm focus:border-amber-400 focus:ring-1 focus:ring-amber-400 placeholder-slate-500"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div class="pt-2">
+            <button
+              id="submit-btn"
+              type="submit"
+              class="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900 flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              <span id="btn-text">Sign In to Dashboard</span>
+              <svg id="btn-spinner" class="w-4 h-4 text-white animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </button>
+          </div>
+
+        </form>
+
+        <!-- Initial Demo Credentials helper for Phase 1 testing -->
+        <div class="mt-6 pt-5 border-t border-slate-700/80 text-center">
+          <p class="text-[11px] text-slate-400">
+            Initial Admin Seed: <code class="text-amber-300 font-mono">admin@sarkariinfo.org</code> / <code class="text-amber-300 font-mono">Admin@12345</code>
+          </p>
+        </div>
+
+      </div>
+
+      <div class="text-center mt-6">
+        <a href="/" class="text-xs text-slate-400 hover:text-slate-200 transition-colors">
+          &larr; Return to Public Website
+        </a>
+      </div>
+
+    </div>
+
+    <script>
+      const form = document.getElementById('login-form') as HTMLFormElement;
+      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+      const btnText = document.getElementById('btn-text');
+      const btnSpinner = document.getElementById('btn-spinner');
+      const alertBox = document.getElementById('alert-error');
+      const alertText = document.getElementById('alert-error-text');
+
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alertBox?.classList.add('hidden');
+
+        const email = (document.getElementById('email') as HTMLInputElement).value;
+        const password = (document.getElementById('password') as HTMLInputElement).value;
+
+        if (submitBtn) submitBtn.disabled = true;
+        btnText?.classList.add('hidden');
+        btnSpinner?.classList.remove('hidden');
+
+        try {
+          const res = await fetch('/api/admin/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = (await res.json()) as any;
+
+          if (res.ok && data.success) {
+            window.location.href = '/admin/dashboard';
+          } else {
+            if (alertText) alertText.textContent = data.error || 'Authentication failed.';
+            alertBox?.classList.remove('hidden');
+          }
+        } catch (err: any) {
+          if (alertText) alertText.textContent = 'Server connection error. Please try again.';
+          alertBox?.classList.remove('hidden');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+          btnText?.classList.remove('hidden');
+          btnSpinner?.classList.add('hidden');
+        }
+      });
+    </script>
+  </body>
+</html>

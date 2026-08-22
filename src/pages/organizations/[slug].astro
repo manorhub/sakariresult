@@ -1,0 +1,182 @@
+---
+// src/pages/organizations/[slug].astro
+// Organization Hub displaying all published jobs, results, admit cards, and exam schedules
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import JobCard from '../../components/JobCard.astro';
+import ContentCard from '../../components/ContentCard.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { getDb } from '../../lib/db.ts';
+import { getOrganizationDetails } from '../../lib/public_queries.ts';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/organizations');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const details = await getOrganizationDetails(db, slug);
+
+if (!details) {
+  return Astro.redirect('/404');
+}
+
+const { org, jobs, results, admitCards, answerKeys, exams, totalCount } = details;
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Organizations', href: '/organizations' },
+  { label: org.name },
+];
+
+const orgSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: org.name,
+  url: org.website || undefined,
+  logo: org.logo_r2_key || undefined,
+};
+---
+
+<BaseLayout
+  title={`${org.name} Recruitment 2026 — Latest Jobs, Admit Cards & Results`}
+  description={`Explore all official ${org.name} recruitment notifications, exam schedules, hall tickets, answer keys, and merit list results.`}
+  canonicalUrl={`${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/organizations/${org.slug}`}
+  jsonLd={orgSchema}
+>
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <!-- Organization Hero Header -->
+    <div class="my-6 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center space-x-4">
+        <div class="w-14 h-14 rounded-xl bg-gov-navy text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0">
+          {org.name.slice(0, 2).toUpperCase()}
+        </div>
+        <div>
+          <div class="flex items-center space-x-2 flex-wrap">
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              {org.name}
+            </h1>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">
+            Official Recruitment Hub &bull; {totalCount} Active Public Notices
+          </p>
+        </div>
+      </div>
+
+      {org.website && (
+        <a
+          href={org.website}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 transition-colors shrink-0"
+        >
+          <span>Visit Official Website</span>
+          <svg class="w-3.5 h-3.5 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      )}
+    </div>
+
+    <!-- Content Sections -->
+    <div class="space-y-10">
+      
+      <!-- Jobs Section -->
+      {jobs.length > 0 && (
+        <section>
+          <div class="flex items-center space-x-2 border-b-2 border-slate-200 pb-2.5 mb-4">
+            <div class="w-2.5 h-5 bg-gov-navy rounded-xs"></div>
+            <h2 class="text-base sm:text-lg font-black text-slate-900">
+              Latest Recruitment & Job Openings ({jobs.length})
+            </h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {jobs.map((job) => (
+              <JobCard job={job} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- Results Section -->
+      {results.length > 0 && (
+        <section>
+          <div class="flex items-center space-x-2 border-b-2 border-slate-200 pb-2.5 mb-4">
+            <div class="w-2.5 h-5 bg-emerald-600 rounded-xs"></div>
+            <h2 class="text-base sm:text-lg font-black text-slate-900">
+              Exam Results & Merit Lists ({results.length})
+            </h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {results.map((item) => (
+              <ContentCard item={item} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- Admit Cards Section -->
+      {admitCards.length > 0 && (
+        <section>
+          <div class="flex items-center space-x-2 border-b-2 border-slate-200 pb-2.5 mb-4">
+            <div class="w-2.5 h-5 bg-amber-600 rounded-xs"></div>
+            <h2 class="text-base sm:text-lg font-black text-slate-900">
+              Admit Cards & Hall Tickets ({admitCards.length})
+            </h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {admitCards.map((item) => (
+              <ContentCard item={item} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- Answer Keys Section -->
+      {answerKeys.length > 0 && (
+        <section>
+          <div class="flex items-center space-x-2 border-b-2 border-slate-200 pb-2.5 mb-4">
+            <div class="w-2.5 h-5 bg-purple-600 rounded-xs"></div>
+            <h2 class="text-base sm:text-lg font-black text-slate-900">
+              Answer Keys & Solution Portals ({answerKeys.length})
+            </h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {answerKeys.map((item) => (
+              <ContentCard item={item} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- Exam Schedules Section -->
+      {exams.length > 0 && (
+        <section>
+          <div class="flex items-center space-x-2 border-b-2 border-slate-200 pb-2.5 mb-4">
+            <div class="w-2.5 h-5 bg-indigo-600 rounded-xs"></div>
+            <h2 class="text-base sm:text-lg font-black text-slate-900">
+              Examination Schedules ({exams.length})
+            </h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {exams.map((item) => (
+              <ContentCard item={item} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <!-- Empty State -->
+      {totalCount === 0 && (
+        <EmptyState
+          title={`No Active Notices for ${org.name}`}
+          message="Recruitment notifications and results will appear here as soon as announced."
+        />
+      )}
+
+    </div>
+  </div>
+</BaseLayout>

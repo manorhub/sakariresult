@@ -1,0 +1,189 @@
+---
+// src/pages/search.astro
+// High-Performance Server-Side Multi-Field Search with Dynamic Filters & Pagination
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import SearchBox from '../components/SearchBox.astro';
+import ContentCard from '../components/ContentCard.astro';
+import Pagination from '../components/Pagination.astro';
+import EmptyState from '../components/EmptyState.astro';
+import { getDb } from '../lib/db.ts';
+import { searchContent, INDIAN_STATES } from '../lib/public_queries.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const url = new URL(Astro.request.url);
+const query = url.searchParams.get('q') || '';
+const type = url.searchParams.get('type') || 'all';
+const qualification = url.searchParams.get('qualification') || 'all';
+const organizationSlug = url.searchParams.get('org') || 'all';
+const state = url.searchParams.get('state') || 'all';
+const dateRange = (url.searchParams.get('date') || 'all') as 'today' | '7days' | '30days' | 'all';
+const page = parseInt(url.searchParams.get('page') || '1', 10);
+
+const result = await searchContent(db, query, {
+  type: type === 'all' ? undefined : type,
+  qualification: qualification === 'all' ? undefined : qualification,
+  organizationSlug: organizationSlug === 'all' ? undefined : organizationSlug,
+  state: state === 'all' ? undefined : state,
+  dateRange,
+  page,
+  limit: 12,
+});
+
+const orgs = (await db.query<{ name: string; slug: string }>('SELECT name, slug FROM organizations ORDER BY name ASC')).results;
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Search Results' },
+];
+
+const hasActiveFilters = type !== 'all' || qualification !== 'all' || organizationSlug !== 'all' || state !== 'all' || dateRange !== 'all';
+---
+
+<BaseLayout
+  title={query ? `Search Results for "${query}" — Sarkari Info` : 'Search Government Jobs, Results & Admit Cards 2026'}
+  description="Search and filter official government jobs, examinations, admit cards, answer keys, and results across all central and state authorities."
+  noindex={Boolean(query && query.length > 0)}
+>
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <!-- Search Hero -->
+    <div class="my-6">
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-4">
+        Search Government Jobs, Exams & Results
+      </h1>
+      <div class="max-w-3xl">
+        <SearchBox initialQuery={query} placeholder="Search by Exam Name, Organization, Post, Advt No..." />
+      </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="bg-white rounded-xl border border-slate-200 p-4 mb-8 shadow-xs">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
+        <div class="flex items-center space-x-2">
+          <svg class="w-4 h-4 text-gov-navy" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Filter Search Results</span>
+        </div>
+
+        {hasActiveFilters && (
+          <a href={`/search?q=${encodeURIComponent(query)}`} class="text-[11px] font-bold text-rose-600 hover:underline">
+            Clear Filters
+          </a>
+        )}
+      </div>
+
+      <form action="/search" method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+        <input type="hidden" name="q" value={query} />
+
+        <!-- Content Type -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Content Type</label>
+          <select name="type" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none" onchange="this.form.submit()">
+            <option value="all" selected={type === 'all'}>All Types</option>
+            <option value="job" selected={type === 'job'}>Government Jobs</option>
+            <option value="result" selected={type === 'result'}>Results</option>
+            <option value="admit_card" selected={type === 'admit_card'}>Admit Cards</option>
+            <option value="answer_key" selected={type === 'answer_key'}>Answer Keys</option>
+            <option value="exam" selected={type === 'exam'}>Exam Calendar</option>
+          </select>
+        </div>
+
+        <!-- Qualification -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qualification</label>
+          <select name="qualification" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none" onchange="this.form.submit()">
+            <option value="all" selected={qualification === 'all'}>All Qualifications</option>
+            <option value="10th" selected={qualification === '10th'}>10th Pass</option>
+            <option value="12th" selected={qualification === '12th'}>12th Pass</option>
+            <option value="Graduate" selected={qualification === 'Graduate'}>Graduate</option>
+            <option value="Post Graduate" selected={qualification === 'Post Graduate'}>Post Graduate</option>
+          </select>
+        </div>
+
+        <!-- Organization -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Authority</label>
+          <select name="org" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none" onchange="this.form.submit()">
+            <option value="all" selected={organizationSlug === 'all'}>All Authorities</option>
+            {orgs.map((o) => (
+              <option value={o.slug} selected={organizationSlug === o.slug}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <!-- State -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">State / Region</label>
+          <select name="state" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none" onchange="this.form.submit()">
+            <option value="all" selected={state === 'all'}>All Regions</option>
+            {INDIAN_STATES.map((s) => (
+              <option value={s.name} selected={state === s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <!-- Date Range -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Published Within</label>
+          <select name="date" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none" onchange="this.form.submit()">
+            <option value="all" selected={dateRange === 'all'}>All Time</option>
+            <option value="today" selected={dateRange === 'today'}>Last 24 Hours</option>
+            <option value="7days" selected={dateRange === '7days'}>Last 7 Days</option>
+            <option value="30days" selected={dateRange === '30days'}>Last 30 Days</option>
+          </select>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Results Output -->
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-sm font-bold text-slate-900">
+        {query ? `Search results for "${query}"` : 'All Published Government Notifications'}
+      </h2>
+      <span class="text-xs text-slate-500 font-medium">{result.total} matching records found</span>
+    </div>
+
+    {result.items.length > 0 ? (
+      <>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {result.items.map((item) => (
+            <ContentCard item={item} />
+          ))}
+        </div>
+
+        <Pagination
+          currentPage={result.page}
+          totalPages={result.totalPages}
+          baseUrl="/search"
+          searchParams={{
+            q: query,
+            type,
+            qualification,
+            org: organizationSlug,
+            state,
+            date: dateRange,
+          }}
+        />
+      </>
+    ) : (
+      <EmptyState
+        title={`No Results Found ${query ? `for "${query}"` : ''}`}
+        message="Please check your spelling, try fewer keywords, or reset filters to search across all government notifications."
+        actionUrl="/search"
+        actionLabel="Reset Search"
+      />
+    )}
+
+  </div>
+</BaseLayout>

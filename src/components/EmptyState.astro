@@ -1,0 +1,48 @@
+---
+// src/components/EmptyState.astro
+
+export interface Props {
+  title?: string;
+  description?: string;
+  message?: string;
+  actionText?: string;
+  actionLabel?: string;
+  actionHref?: string;
+  actionUrl?: string;
+  icon?: 'folder' | 'search' | 'clock' | 'bell';
+}
+
+const {
+  title = 'No Updates Available Currently',
+  description,
+  message,
+  actionText,
+  actionLabel,
+  actionHref,
+  actionUrl = '/',
+} = Astro.props;
+
+const finalDescription = description || message || 'There are no active listings in this section at the moment. Please check back shortly or explore other categories.';
+const finalActionText = actionText || actionLabel;
+const finalActionHref = actionHref || actionUrl;
+---
+
+<div class="bg-white rounded-xl border border-slate-200 p-8 sm:p-12 text-center my-6 max-w-2xl mx-auto shadow-sm">
+  <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+    </svg>
+  </div>
+  <h3 class="text-lg font-bold text-slate-800 mb-2">{title}</h3>
+  <p class="text-sm text-slate-500 max-w-md mx-auto mb-6 leading-relaxed">
+    {finalDescription}
+  </p>
+  {finalActionText && (
+    <a
+      href={finalActionHref}
+      class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg bg-gov-navy text-white hover:bg-slate-900 transition-colors shadow-sm"
+    >
+      {finalActionText} &rarr;
+    </a>
+  )}
+</div>

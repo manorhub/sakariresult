@@ -1,0 +1,126 @@
+---
+// src/layouts/AccountLayout.astro
+// Clean, Mobile-First User Dashboard Layout
+
+import BaseLayout from './BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import type { UserSession } from '../lib/user_auth.ts';
+import { getDb } from '../lib/db.ts';
+
+export interface Props {
+  title?: string;
+  activeNav?: string;
+}
+
+const { title = 'My Account', activeNav = '/account' } = Astro.props;
+const session = (Astro.locals as any).userSession as UserSession | null;
+
+if (!session) {
+  return Astro.redirect('/login');
+}
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const unreadCount = (await db.first<{ count: number }>(`
+  SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read_at IS NULL
+`, [session.userId]))?.count || 0;
+
+const navItems = [
+  { label: 'Overview', href: '/account', icon: '📊' },
+  { label: 'Saved Items', href: '/account/saved', icon: '🔖' },
+  { label: 'Following', href: '/account/following', icon: '🏢' },
+  { label: 'Notifications', href: '/account/notifications', icon: '🔔', badge: unreadCount > 0 ? String(unreadCount) : undefined },
+  { label: 'Alert Settings', href: '/account/settings/notifications', icon: '⚙️' },
+  { label: 'Profile & Security', href: '/account/profile', icon: '👤' },
+];
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Account', href: '/account' },
+  ...(title !== 'My Account' ? [{ label: title }] : []),
+];
+---
+
+<BaseLayout
+  title={`${title} — Candidate Dashboard`}
+  description="Manage your saved jobs, exam hall tickets, followed commissions, and email notification alerts on Sarkari Info."
+  noindex={true}
+>
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <!-- Dashboard Grid -->
+    <div class="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Sidebar Navigation -->
+      <aside class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+        
+        <!-- User Bio Card -->
+        <div class="pb-5 mb-5 border-b border-slate-100 flex items-center space-x-3">
+          <div class="w-12 h-12 rounded-xl bg-gov-navy text-white flex items-center justify-center font-black text-lg shadow-xs shrink-0">
+            {session.name.slice(0, 2).toUpperCase()}
+          </div>
+          <div class="min-w-0">
+            <h2 class="text-sm font-bold text-slate-900 truncate">{session.name}</h2>
+            <p class="text-xs text-slate-500 truncate">{session.email}</p>
+            {session.emailVerified ? (
+              <span class="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded mt-1">
+                ✓ Verified
+              </span>
+            ) : (
+              <a href="/verify-email" class="inline-flex items-center text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded mt-1 hover:underline">
+                ⚠️ Unverified &bull; Verify Now
+              </a>
+            )}
+          </div>
+        </div>
+
+        <!-- Nav Items -->
+        <nav class="space-y-1">
+          {navItems.map((item) => {
+            const isActive = activeNav === item.href;
+            return (
+              <a
+                href={item.href}
+                class={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  isActive
+                    ? 'bg-gov-navy text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <div class="flex items-center space-x-2.5">
+                  <span class="text-sm">{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span class={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                    isActive ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-700'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
+              </a>
+            );
+          })}
+
+          <div class="pt-3 mt-3 border-t border-slate-100">
+            <a
+              href="/logout"
+              class="flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors"
+            >
+              <span>🚪</span>
+              <span>Sign Out</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="lg:col-span-9 space-y-6">
+        <slot />
+      </main>
+
+    </div>
+  </div>
+</BaseLayout>

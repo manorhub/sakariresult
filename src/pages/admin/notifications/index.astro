@@ -1,0 +1,186 @@
+---
+// src/pages/admin/notifications/index.astro
+// Admin Notification Queue & Delivery Dashboard
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import type { UserNotification } from '../../../lib/user_auth.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const notifs = (await db.query<UserNotification>(`
+  SELECT n.*, u.email as user_email, u.name as user_name
+  FROM notifications n
+  LEFT JOIN users u ON u.id = n.user_id
+  ORDER BY n.created_at DESC
+  LIMIT 100
+`)).results;
+
+const stats = {
+  total: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM notifications'))?.c || 0,
+  pending: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM notifications WHERE status = "pending"'))?.c || 0,
+  sent: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM notifications WHERE status = "sent"'))?.c || 0,
+  failed: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM notifications WHERE status = "failed"'))?.c || 0,
+  today: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM notifications WHERE date(created_at) = date("now")'))?.c || 0,
+};
+---
+
+<AdminLayout title="Notification Delivery & Queue Monitor">
+  <div class="space-y-6">
+    
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Notification Queue & Deliveries</h1>
+        <p class="text-xs text-slate-500 mt-1">Monitor real-time candidate job alerts, digest emails, and delivery status.</p>
+      </div>
+
+      <button
+        type="button"
+        id="trigger-cron-btn"
+        class="px-4 py-2 bg-gov-navy hover:bg-slate-900 text-white font-bold text-xs rounded-lg shadow-xs transition-colors"
+      >
+        ⚡ Process Pending Queue Now
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Today's Alerts</span>
+        <span class="text-2xl font-black text-slate-900 mt-1 block">{stats.today}</span>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Pending Queue</span>
+        <span class={`text-2xl font-black mt-1 block ${stats.pending > 0 ? 'text-amber-600' : 'text-slate-900'}`}>{stats.pending}</span>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Sent Successfully</span>
+        <span class="text-2xl font-black text-emerald-600 mt-1 block">{stats.sent}</span>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Failed</span>
+        <span class={`text-2xl font-black mt-1 block ${stats.failed > 0 ? 'text-rose-600' : 'text-slate-900'}`}>{stats.failed}</span>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Recorded</span>
+        <span class="text-2xl font-black text-slate-900 mt-1 block">{stats.total}</span>
+      </div>
+    </div>
+
+    <!-- Notifications Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Recent Dispatches & Queue Log ({notifs.length})</h2>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-bold">
+              <th class="py-3 px-4">Recipient</th>
+              <th class="py-3 px-4">Type</th>
+              <th class="py-3 px-4">Title</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4">Created</th>
+              <th class="py-3 px-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {notifs.map((n: any) => (
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-bold text-slate-900">
+                  {n.user_name || 'Candidate'}
+                  <span class="block text-[10px] text-slate-400 font-mono font-normal">{n.user_email}</span>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="bg-slate-100 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                    {n.type.replace('_', ' ')}
+                  </span>
+                </td>
+                <td class="py-3 px-4 font-medium text-slate-800 max-w-xs truncate">{n.title}</td>
+                <td class="py-3 px-4">
+                  <span class={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                    n.status === 'sent' ? 'bg-emerald-100 text-emerald-800' :
+                    n.status === 'pending' ? 'bg-amber-100 text-amber-800' :
+                    n.status === 'read' ? 'bg-blue-100 text-blue-800' :
+                    'bg-rose-100 text-rose-800'
+                  }`}>
+                    {n.status}
+                  </span>
+                  {n.error_message && (
+                    <span class="block text-[9px] text-rose-600 truncate max-w-xs mt-0.5">{n.error_message}</span>
+                  )}
+                </td>
+                <td class="py-3 px-4 text-slate-500">{new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                <td class="py-3 px-4 text-right">
+                  {n.status === 'failed' && (
+                    <button
+                      type="button"
+                      data-id={n.id}
+                      class="retry-notif-btn text-blue-600 hover:underline font-bold"
+                    >
+                      Retry
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {notifs.length === 0 && (
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-400">
+                  No notification events recorded yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</AdminLayout>
+
+<script>
+  // Trigger Queue Processing Manually
+  const triggerBtn = document.getElementById('trigger-cron-btn');
+  if (triggerBtn) {
+    triggerBtn.addEventListener('click', async () => {
+      triggerBtn.textContent = 'Processing queue...';
+      try {
+        const res = await fetch('/api/cron/process-alerts');
+        const data = (await res.json()) as any;
+        if (data.success) {
+          alert(`Queue Processed: ${data.queue.succeeded} sent, ${data.queue.failed} failed, ${data.remindersCreated} deadline reminders enqueued.`);
+          window.location.reload();
+        }
+      } catch (err: any) {
+        alert(err.message);
+      } finally {
+        triggerBtn.textContent = '⚡ Process Pending Queue Now';
+      }
+    });
+  }
+
+  // Retry single notification
+  document.querySelectorAll('.retry-notif-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const notificationId = btn.getAttribute('data-id');
+      if (!notificationId) return;
+
+      try {
+        const res = await fetch('/api/admin/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId, action: 'retry' }),
+        });
+        const data = (await res.json()) as any;
+        if (data.success) window.location.reload();
+      } catch {}
+    });
+  });
+</script>

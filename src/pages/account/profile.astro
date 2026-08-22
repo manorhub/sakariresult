@@ -1,0 +1,233 @@
+---
+// src/pages/account/profile.astro
+// User Profile & Security Settings Page
+
+import AccountLayout from '../../layouts/AccountLayout.astro';
+import { getDb } from '../../lib/db.ts';
+import type { UserSession, User } from '../../lib/user_auth.ts';
+
+const session = (Astro.locals as any).userSession as UserSession | null;
+if (!session) return Astro.redirect('/login');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const user = await db.first<User>('SELECT * FROM users WHERE id = ?', [session.userId]);
+if (!user) return Astro.redirect('/login');
+---
+
+<AccountLayout title="Profile & Security" activeNav="/account/profile">
+  <div class="max-w-2xl space-y-8">
+    
+    <div class="pb-3 border-b border-slate-200">
+      <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Profile & Security</h1>
+      <p class="text-xs text-slate-500 mt-1">Manage your account information, password, and privacy options.</p>
+    </div>
+
+    <!-- Edit Profile Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6 text-xs">
+      <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
+        Personal Details
+      </h2>
+
+      <div id="profile-msg" class="hidden p-3 rounded-lg text-xs font-semibold"></div>
+
+      <form id="profile-form" class="space-y-4">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Full Name</label>
+          <input
+            type="text"
+            name="name"
+            value={user.name}
+            required
+            class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 focus:border-gov-navy focus:bg-white focus:outline-none transition-colors"
+          />
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Email Address</label>
+          <input
+            type="email"
+            value={user.email}
+            disabled
+            class="w-full bg-slate-100 border border-slate-200 text-slate-500 rounded-lg p-3 cursor-not-allowed"
+          />
+          <span class="text-[11px] text-slate-400">Email address cannot be changed directly for security.</span>
+        </div>
+
+        <div class="pt-2 flex items-center justify-between">
+          <span id="name-save-status" class="text-xs font-semibold text-emerald-600 hidden">Name updated!</span>
+          <button
+            type="submit"
+            class="px-6 py-2.5 bg-gov-navy hover:bg-slate-900 text-white font-bold rounded-xl shadow-xs transition-colors"
+          >
+            Update Profile
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Change Password Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6 text-xs">
+      <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
+        Change Password
+      </h2>
+
+      <div id="pw-msg" class="hidden p-3 rounded-lg text-xs font-semibold"></div>
+
+      <form id="change-pw-form" class="space-y-4">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Current Password</label>
+          <input
+            type="password"
+            name="currentPassword"
+            required
+            class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 focus:border-gov-navy focus:bg-white focus:outline-none transition-colors"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">New Password</label>
+            <input
+              type="password"
+              name="newPassword"
+              minlength="8"
+              required
+              class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 focus:border-gov-navy focus:bg-white focus:outline-none transition-colors"
+            />
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Confirm New Password</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              minlength="8"
+              required
+              class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 focus:border-gov-navy focus:bg-white focus:outline-none transition-colors"
+            />
+          </div>
+        </div>
+
+        <div class="pt-2 flex items-center justify-between">
+          <span id="pw-save-status" class="text-xs font-semibold text-emerald-600 hidden">Password updated!</span>
+          <button
+            type="submit"
+            class="px-6 py-2.5 bg-gov-navy hover:bg-slate-900 text-white font-bold rounded-xl shadow-xs transition-colors"
+          >
+            Update Password
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Danger Zone / Delete Account -->
+    <div class="bg-rose-50/50 rounded-2xl border border-rose-200 p-6 sm:p-8 shadow-xs space-y-4 text-xs">
+      <h2 class="text-sm font-bold text-rose-900 uppercase tracking-wider">
+        Danger Zone: Delete Account
+      </h2>
+      <p class="text-slate-600 leading-relaxed">
+        Permanently delete your account and all associated saved jobs, following preferences, and alert histories. This action cannot be reversed.
+      </p>
+
+      <form id="delete-account-form" class="space-y-3 pt-2">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Confirm your password to delete account:</label>
+          <input
+            type="password"
+            name="password"
+            placeholder="Your password"
+            required
+            class="w-full sm:w-80 bg-white border border-rose-300 rounded-lg p-2.5 focus:border-rose-600 focus:outline-none"
+          />
+        </div>
+
+        <button
+          type="submit"
+          onclick="return confirm('Are you completely sure you want to permanently delete your account? All saved items and alert settings will be wiped.');"
+          class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-xs transition-colors"
+        >
+          Delete My Account Permanently
+        </button>
+      </form>
+    </div>
+
+  </div>
+</AccountLayout>
+
+<script>
+  // Profile Update
+  const profileForm = document.getElementById('profile-form') as HTMLFormElement | null;
+  const profileMsg = document.getElementById('profile-msg');
+  if (profileForm) {
+    profileForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(profileForm);
+      try {
+        const res = await fetch('/api/user/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: formData.get('name') }),
+        });
+        const data = (await res.json()) as any;
+        if (profileMsg) {
+          profileMsg.textContent = data.message || 'Profile updated.';
+          profileMsg.className = data.success ? 'p-3 rounded-lg text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800' : 'p-3 rounded-lg text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-700';
+          profileMsg.classList.remove('hidden');
+        }
+      } catch {}
+    });
+  }
+
+  // Password Change
+  const pwForm = document.getElementById('change-pw-form') as HTMLFormElement | null;
+  const pwMsg = document.getElementById('pw-msg');
+  if (pwForm) {
+    pwForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(pwForm);
+      try {
+        const res = await fetch('/api/user/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            currentPassword: formData.get('currentPassword'),
+            newPassword: formData.get('newPassword'),
+            confirmPassword: formData.get('confirmPassword'),
+          }),
+        });
+        const data = (await res.json()) as any;
+        if (pwMsg) {
+          pwMsg.textContent = data.message || data.error || 'Password updated.';
+          pwMsg.className = data.success ? 'p-3 rounded-lg text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-800' : 'p-3 rounded-lg text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-700';
+          pwMsg.classList.remove('hidden');
+        }
+        if (data.success) pwForm.reset();
+      } catch {}
+    });
+  }
+
+  // Delete Account
+  const delForm = document.getElementById('delete-account-form') as HTMLFormElement | null;
+  if (delForm) {
+    delForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(delForm);
+      try {
+        const res = await fetch('/api/user/delete-account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: formData.get('password') }),
+        });
+        const data = (await res.json()) as any;
+        if (data.success) {
+          alert('Your account has been deleted.');
+          window.location.href = '/';
+        } else {
+          alert(data.error || 'Account deletion failed.');
+        }
+      } catch {}
+    });
+  }
+</script>

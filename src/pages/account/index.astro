@@ -1,0 +1,164 @@
+---
+// src/pages/account/index.astro
+// User Dashboard Overview
+
+import AccountLayout from '../../layouts/AccountLayout.astro';
+import JobCard from '../../components/JobCard.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { getDb } from '../../lib/db.ts';
+import type { UserSession, UserNotification } from '../../lib/user_auth.ts';
+import type { PublicJobItem } from '../../lib/public_queries.ts';
+import { calculateJobStatus } from '../../lib/public_queries.ts';
+
+const session = (Astro.locals as any).userSession as UserSession | null;
+if (!session) return Astro.redirect('/login');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+// Query stats
+const totalSaved = (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM saved_items WHERE user_id = ?', [session.userId]))?.c || 0;
+const totalOrgs = (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM followed_organizations WHERE user_id = ?', [session.userId]))?.c || 0;
+const totalCats = (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM followed_categories WHERE user_id = ?', [session.userId]))?.c || 0;
+const unreadNotifs = (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM notifications WHERE user_id = ? AND read_at IS NULL', [session.userId]))?.c || 0;
+
+// Query recent saved jobs
+const recentSaved = (await db.query<PublicJobItem>(`
+  SELECT ci.*, j.post_name, j.vacancy as total_vacancies, j.qualification, j.application_last_date,
+         o.name as organization_name, o.slug as organization_slug,
+         c.name as category_name, c.slug as category_slug
+  FROM saved_items si
+  JOIN content_items ci ON ci.id = si.content_item_id AND ci.status = 'published'
+  LEFT JOIN jobs j ON j.content_item_id = ci.id
+  LEFT JOIN organizations o ON o.id = ci.organization_id
+  LEFT JOIN categories c ON c.id = ci.category_id
+  WHERE si.user_id = ?
+  ORDER BY si.created_at DESC
+  LIMIT 4
+`, [session.userId])).results.map(i => ({
+  ...i,
+  calculated_status: calculateJobStatus(i),
+}));
+
+// Query recent notifications
+const recentNotifs = (await db.query<UserNotification>(`
+  SELECT n.*, ci.slug as content_slug, ci.type as content_type
+  FROM notifications n
+  LEFT JOIN content_items ci ON ci.id = n.content_item_id
+  WHERE n.user_id = ?
+  ORDER BY n.created_at DESC
+  LIMIT 5
+`, [session.userId])).results;
+---
+
+<AccountLayout title="Dashboard Overview" activeNav="/account">
+  <div class="space-y-6">
+    
+    <!-- Welcome Card -->
+    <div class="bg-gradient-to-r from-gov-navy to-slate-900 rounded-2xl p-6 text-white shadow-xs">
+      <h1 class="text-xl sm:text-2xl font-black tracking-tight">Welcome back, {session.name}!</h1>
+      <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
+        Track your saved government recruitment notices, exam hall tickets, merit lists, and personalized notifications.
+      </p>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      
+      <a href="/account/saved" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-gov-navy transition-all group">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Saved Items</span>
+        <div class="flex items-center justify-between mt-2">
+          <span class="text-2xl font-black text-slate-900 group-hover:text-gov-navy">{totalSaved}</span>
+          <span class="text-xl">🔖</span>
+        </div>
+      </a>
+
+      <a href="/account/following" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-gov-navy transition-all group">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Followed Orgs</span>
+        <div class="flex items-center justify-between mt-2">
+          <span class="text-2xl font-black text-slate-900 group-hover:text-gov-navy">{totalOrgs}</span>
+          <span class="text-xl">🏢</span>
+        </div>
+      </a>
+
+      <a href="/account/following" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-gov-navy transition-all group">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Categories</span>
+        <div class="flex items-center justify-between mt-2">
+          <span class="text-2xl font-black text-slate-900 group-hover:text-gov-navy">{totalCats}</span>
+          <span class="text-xl">🏷️</span>
+        </div>
+      </a>
+
+      <a href="/account/notifications" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs hover:border-gov-navy transition-all group">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Unread Alerts</span>
+        <div class="flex items-center justify-between mt-2">
+          <span class={`text-2xl font-black ${unreadNotifs > 0 ? 'text-rose-600' : 'text-slate-900'}`}>{unreadNotifs}</span>
+          <span class="text-xl">🔔</span>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Recent Saved Jobs Section -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+      <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Recently Saved Opportunities</h2>
+        <a href="/account/saved" class="text-xs font-bold text-blue-600 hover:underline">View All &rarr;</a>
+      </div>
+
+      {recentSaved.length > 0 ? (
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {recentSaved.map((job) => (
+            <JobCard job={job} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No Saved Jobs Yet"
+          message="Click the 'Save Job' button on any recruitment or exam page to keep track of upcoming deadlines."
+          actionUrl="/jobs"
+          actionLabel="Browse Latest Jobs"
+        />
+      )}
+    </div>
+
+    <!-- Recent Alerts Feed -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+      <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Latest Alerts & Notices</h2>
+        <a href="/account/notifications" class="text-xs font-bold text-blue-600 hover:underline">Notification Center &rarr;</a>
+      </div>
+
+      {recentNotifs.length > 0 ? (
+        <div class="divide-y divide-slate-100 text-xs">
+          {recentNotifs.map((n) => (
+            <div class="py-3 flex items-start justify-between gap-3">
+              <div class="space-y-0.5">
+                <div class="flex items-center space-x-2">
+                  <span class="font-bold text-slate-900">{n.title}</span>
+                  {!n.read_at && (
+                    <span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                  )}
+                </div>
+                <p class="text-slate-500 text-[11px]">{n.message}</p>
+                <span class="text-[10px] text-slate-400 block">{new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              </div>
+
+              {n.content_slug && (
+                <a
+                  href={`/${n.content_type === 'job' ? 'jobs' : (n.content_type || '').replace('_', '-')}/${n.content_slug}`}
+                  class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg shrink-0 transition-colors"
+                >
+                  View &rarr;
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class="text-xs text-slate-400 py-3 text-center">No new notifications in your inbox.</p>
+      )}
+    </div>
+
+  </div>
+</AccountLayout>

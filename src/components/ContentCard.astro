@@ -1,0 +1,73 @@
+---
+// src/components/ContentCard.astro
+import type { PublicJobItem } from '../lib/public_queries.ts';
+
+export interface Props {
+  item: PublicJobItem | any;
+  basePath?: string;
+}
+
+const { item, basePath } = Astro.props;
+
+if (!item) return null;
+
+function getHref(i: PublicJobItem): string {
+  if (basePath) return `${basePath}/${i.slug}`;
+  if (i.type === 'job') return `/jobs/${i.slug}`;
+  if (i.type === 'result') return `/results/${i.slug}`;
+  if (i.type === 'admit_card') return `/admit-card/${i.slug}`;
+  if (i.type === 'answer_key') return `/answer-key/${i.slug}`;
+  if (i.type === 'exam') return `/exams/${i.slug}`;
+  if (i.type === 'scholarship') return `/scholarships/${i.slug}`;
+  if (i.type === 'syllabus') return `/syllabus/${i.slug}`;
+  if (i.type === 'scheme') return `/schemes/${i.slug}`;
+  return `/important-updates/${i.slug}`;
+}
+
+function getBadgeStyle(type: string): { label: string; bg: string } {
+  switch (type) {
+    case 'job': return { label: 'JOB', bg: 'bg-blue-50 text-blue-800 border-blue-200' };
+    case 'result': return { label: 'RESULT', bg: 'bg-emerald-50 text-emerald-800 border-emerald-200' };
+    case 'admit_card': return { label: 'ADMIT CARD', bg: 'bg-amber-50 text-amber-900 border-amber-200' };
+    case 'answer_key': return { label: 'ANSWER KEY', bg: 'bg-purple-50 text-purple-800 border-purple-200' };
+    case 'exam': return { label: 'EXAM', bg: 'bg-indigo-50 text-indigo-800 border-indigo-200' };
+    case 'scholarship': return { label: 'SCHOLARSHIP', bg: 'bg-teal-50 text-teal-800 border-teal-200' };
+    case 'syllabus': return { label: 'SYLLABUS', bg: 'bg-indigo-50 text-indigo-800 border-indigo-200' };
+    case 'scheme': return { label: 'SCHEME', bg: 'bg-cyan-50 text-cyan-800 border-cyan-200' };
+    default: return { label: 'NOTICE', bg: 'bg-slate-50 text-slate-700 border-slate-200' };
+  }
+}
+
+const targetUrl = getHref(item);
+const badge = getBadgeStyle(item.type);
+---
+
+<div class="bg-white rounded-xl border border-slate-200 p-4 hover:border-gov-navy/40 hover:shadow-xs transition-all flex flex-col justify-between group">
+  <div>
+    <div class="flex items-center justify-between gap-2 mb-2">
+      <span class={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${badge.bg}`}>
+        {badge.label}
+      </span>
+      {item.organization_name && (
+        <span class="text-[11px] font-medium text-slate-500 truncate max-w-[170px]">
+          {item.organization_name}
+        </span>
+      )}
+    </div>
+
+    <h3 class="text-xs sm:text-sm font-bold text-slate-900 leading-snug mb-2 group-hover:text-gov-navy line-clamp-2">
+      <a href={targetUrl}>
+        {item.title}
+      </a>
+    </h3>
+  </div>
+
+  <div class="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-100 text-[11px]">
+    <span class="text-slate-400">
+      {item.published_at ? item.published_at.slice(0, 10) : (item.created_at ? item.created_at.slice(0, 10) : 'Active')}
+    </span>
+    <a href={targetUrl} class="font-bold text-gov-saffron group-hover:translate-x-0.5 transition-transform inline-flex items-center">
+      Check Now &rarr;
+    </a>
+  </div>
+</div>

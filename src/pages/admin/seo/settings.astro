@@ -1,0 +1,166 @@
+---
+// src/pages/admin/seo/settings.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const rows = (await db.query<{ key: string; value: string; type: string }>('SELECT key, value, type FROM settings WHERE key LIKE "seo_%" OR key = "site_name" OR key = "site_url"')).results;
+
+const settings: Record<string, string> = {};
+for (const r of rows) {
+  settings[r.key] = r.value;
+}
+---
+
+<AdminLayout title="SEO & Indexation Settings">
+  <div class="max-w-4xl space-y-6">
+    
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">SEO & Search Console Configuration</h1>
+        <p class="text-xs text-slate-500 mt-1">Configure global title templates, programmatic quality thresholds, and robots defaults.</p>
+      </div>
+
+      <a href="/admin/seo" class="text-xs font-bold text-slate-600 hover:text-slate-900">
+        &larr; Back to SEO Dashboard
+      </a>
+    </div>
+
+    <form id="seo-settings-form" class="space-y-6 bg-white rounded-xl border border-slate-200 p-6 shadow-xs text-xs">
+      
+      <!-- General SEO -->
+      <div class="space-y-4">
+        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
+          General Identity & Domain
+        </h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Site Brand Name</label>
+            <input
+              type="text"
+              name="site_name"
+              value={settings.site_name || 'Sarkari Info'}
+              class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:border-gov-navy focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Primary Production Domain (HTTPS)</label>
+            <input
+              type="url"
+              name="site_url"
+              value={settings.site_url || 'https://sarkariinfo.in'}
+              class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:border-gov-navy focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Title & Description Templates -->
+      <div class="space-y-4 pt-4 border-t border-slate-100">
+        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
+          Title & Meta Templates
+        </h2>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Default Job Title Template</label>
+          <input
+            type="text"
+            name="seo_job_title_template"
+            value={settings.seo_job_title_template || '{org} {post} Recruitment {year} — {vacancies} Eligibility & Apply Online'}
+            class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:border-gov-navy focus:outline-none"
+          />
+          <span class="text-[10px] text-slate-400">Available variables: {'{org}'}, {'{post}'}, {'{year}'}, {'{vacancies}'}, {'{site_name}'}</span>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Default Result Title Template</label>
+          <input
+            type="text"
+            name="seo_result_title_template"
+            value={settings.seo_result_title_template || '{title} — Check Result, Merit List & Cut Off Marks'}
+            class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:border-gov-navy focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <!-- Quality Thresholds -->
+      <div class="space-y-4 pt-4 border-t border-slate-100">
+        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">
+          Programmatic SEO Quality Thresholds
+        </h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Minimum Active Items to Index Programmatic Page</label>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              name="seo_min_content_threshold"
+              value={settings.seo_min_content_threshold || '1'}
+              class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:border-gov-navy focus:outline-none"
+            />
+            <span class="text-[10px] text-slate-400">Landing pages with fewer published items will be set to 'noindex, follow'.</span>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Maximum Contextual Body Links</label>
+            <input
+              type="number"
+              min="1"
+              max="10"
+              name="seo_max_body_links"
+              value={settings.seo_max_body_links || '3'}
+              class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 focus:border-gov-navy focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+        <span id="save-status" class="text-xs font-semibold text-emerald-600 hidden">Settings saved successfully!</span>
+        <button
+          type="submit"
+          class="ml-auto px-6 py-2.5 text-xs font-bold text-white bg-gov-navy hover:bg-slate-900 rounded-lg shadow-xs transition-colors"
+        >
+          Save SEO Settings
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('seo-settings-form') as HTMLFormElement | null;
+  const statusEl = document.getElementById('save-status');
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const payload: Record<string, any> = {};
+      formData.forEach((val, key) => {
+        payload[key] = val;
+      });
+
+      try {
+        const res = await fetch('/api/admin/seo/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = (await res.json()) as any;
+        if (data.success && statusEl) {
+          statusEl.classList.remove('hidden');
+          setTimeout(() => statusEl.classList.add('hidden'), 3000);
+        }
+      } catch {}
+    });
+  }
+</script>

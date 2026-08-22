@@ -1,0 +1,91 @@
+---
+// src/pages/admin/analytics/searches.astro
+// Internal Search Analytics Dashboard
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import { getTopSearchQueries } from '../../../lib/analytics/search_tracker.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const queries = await getTopSearchQueries(db, 50);
+
+const stats = {
+  uniqueTerms: queries.length,
+  totalHits: (await db.first<{ s: number }>('SELECT SUM(hit_count) as s FROM search_queries'))?.s || 0,
+  zeroResults: (await db.first<{ c: number }>('SELECT COUNT(*) as c FROM search_queries WHERE results_count = 0'))?.c || 0,
+};
+---
+
+<AdminLayout title="Search Analytics">
+  <div class="space-y-6">
+    
+    <div class="pb-3 border-b border-slate-200">
+      <h1 class="text-2xl font-black text-slate-900 tracking-tight">Internal Search Analytics</h1>
+      <p class="text-xs text-slate-500 mt-1">Aggregate, anonymous candidate search queries and zero-result discovery terms.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Searches Run</span>
+        <span class="text-2xl font-black text-slate-900 mt-1 block">{stats.totalHits}</span>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Unique Search Terms</span>
+        <span class="text-2xl font-black text-blue-600 mt-1 block">{stats.uniqueTerms}</span>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Zero Result Queries</span>
+        <span class={`text-2xl font-black mt-1 block ${stats.zeroResults > 0 ? 'text-amber-600' : 'text-slate-900'}`}>{stats.zeroResults}</span>
+      </div>
+    </div>
+
+    <!-- Search Terms Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Top Search Terms ({queries.length})</h2>
+      </div>
+
+      {queries.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-bold">
+                <th class="py-3 px-4">Search Term</th>
+                <th class="py-3 px-4">Total Hits</th>
+                <th class="py-3 px-4">Results Found</th>
+                <th class="py-3 px-4 text-right">Last Searched</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {queries.map((q) => (
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 px-4 font-bold text-slate-900">{q.query}</td>
+                  <td class="py-3 px-4 font-black text-slate-800">{q.hits}</td>
+                  <td class="py-3 px-4">
+                    {q.resultsCount > 0 ? (
+                      <span class="text-emerald-700 font-semibold">{q.resultsCount} items</span>
+                    ) : (
+                      <span class="bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded">0 results (Gap)</span>
+                    )}
+                  </td>
+                  <td class="py-3 px-4 text-right text-slate-400">{new Date(q.lastSearched).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="p-12 text-center text-slate-400">
+          <span class="text-3xl block mb-2">🔍</span>
+          <p class="font-bold text-slate-700">No search queries recorded yet.</p>
+        </div>
+      )}
+    </div>
+
+  </div>
+</AdminLayout>

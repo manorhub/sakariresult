@@ -1,0 +1,288 @@
+---
+// src/pages/jobs/[slug].astro
+// Dual-Role Dynamic Router: Handles Programmatic Landing Pages & Single Job Postings
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import JobCard from '../../components/JobCard.astro';
+import ImportantLinks from '../../components/ImportantLinks.astro';
+import SourceBox from '../../components/SourceBox.astro';
+import RelatedContent from '../../components/RelatedContent.astro';
+import FAQAccordion from '../../components/FAQAccordion.astro';
+import JobSummaryTable from '../../components/JobSummaryTable.astro';
+import AdminPreviewBanner from '../../components/AdminPreviewBanner.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { getDb } from '../../lib/db.ts';
+import { getContentItemBySlug, getRelatedContent } from '../../lib/public_queries.ts';
+import { getProgrammaticPageData } from '../../lib/seo/programmatic.ts';
+import { buildJobPostingSchema, buildBreadcrumbSchema } from '../../lib/seo/schema.ts';
+import { buildCanonicalUrl } from '../../lib/seo/canonical.ts';
+import { resolveInternalLinks } from '../../lib/internal-links/resolver.ts';
+import { injectContextualLinks } from '../../lib/internal-links/renderer.ts';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/jobs');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+const siteUrl = Astro.site?.toString() || 'https://sarkariinfo.in';
+
+// 1. Check if slug matches a Programmatic Landing Page
+const progData = await getProgrammaticPageData(db, slug);
+
+let isProgrammatic = Boolean(progData);
+let singleJobData: any = null;
+
+if (!isProgrammatic) {
+  // 2. Fetch Single Job Posting
+  const isPreviewQuery = Astro.url.searchParams.get('preview') === 'true';
+  const { item, isPreview } = await getContentItemBySlug(db, 'job', slug, { allowPreview: isPreviewQuery });
+
+  if (!item) {
+    return Astro.redirect('/404');
+  }
+
+  singleJobData = { item, isPreview };
+}
+
+// ----------------------------------------------------
+// A. PROGRAMMATIC LANDING PAGE LOGIC
+// ----------------------------------------------------
+let progPageTitle = '';
+let progPageDesc = '';
+let progCanonical = '';
+let progBreadcrumbs: any[] = [];
+let progJsonLd: any = null;
+
+if (isProgrammatic && progData) {
+  const { page, totalCount } = progData;
+  progPageTitle = `${page.title}`;
+  progPageDesc = page.meta_description || `Explore ${totalCount} active verified recruitment opportunities on Sarkari Info.`;
+  progCanonical = buildCanonicalUrl(`/jobs/${page.slug}`, { siteUrl });
+
+  progBreadcrumbs = [
+    { label: 'Home', href: '/' },
+    { label: 'Jobs', href: '/jobs' },
+    { label: page.heading },
+  ];
+
+  progJsonLd = buildBreadcrumbSchema(progBreadcrumbs, siteUrl);
+}
+
+// ----------------------------------------------------
+// B. SINGLE JOB POSTING LOGIC
+// ----------------------------------------------------
+let jobItem: any = null;
+let isPreview = false;
+let extractedData: any = {};
+let faqs: any[] = [];
+let relatedJobs: any[] = [];
+let processedArticleContent: string | null = null;
+let actionLinks: any[] = [];
+let jobBreadcrumbs: any[] = [];
+let jobJsonLd: any = null;
+let jobCanonical = '';
+
+if (!isProgrammatic && singleJobData) {
+  jobItem = singleJobData.item;
+  isPreview = singleJobData.isPreview;
+
+  try { if (jobItem.extracted_data_json) extractedData = JSON.parse(jobItem.extracted_data_json); } catch {}
+  try { if (jobItem.faq_json) faqs = JSON.parse(jobItem.faq_json); } catch {}
+
+  // Resolve Contextual Internal Links
+  const internalLinks = await resolveInternalLinks(db, jobItem);
+  if (jobItem.article_content) {
+    processedArticleContent = injectContextualLinks(jobItem.article_content, internalLinks.bodyCandidates, 3);
+  }
+
+  // Related content
+  relatedJobs = await getRelatedContent(db, jobItem, 6);
+
+  actionLinks = [
+    { label: 'Apply Online Form', url: jobItem.apply_online_url || extractedData.apply_online_url, isPrimary: true, type: 'apply' as const },
+    { label: 'Download Official Notification (PDF)', url: jobItem.official_notification_url || extractedData.official_notification_url, type: 'notification' as const },
+    { label: 'Official Recruitment Portal', url: jobItem.organization_website || extractedData.official_website_url, type: 'official_site' as const },
+  ];
+
+  jobBreadcrumbs = [
+    { label: 'Home', href: '/' },
+    { label: 'Jobs', href: '/jobs' },
+    { label: jobItem.title },
+  ];
+
+  jobCanonical = buildCanonicalUrl(`/jobs/${jobItem.slug}`, {
+    siteUrl,
+    customCanonical: jobItem.canonical_url,
+  });
+
+  jobJsonLd = buildJobPostingSchema(jobItem, siteUrl);
+}
+---
+
+{isProgrammatic && progData ? (
+  <!-- ============================================== -->
+  <!-- PROGRAMMATIC LANDING PAGE RENDER               -->
+  <!-- ============================================== -->
+  <BaseLayout
+    title={progPageTitle}
+    description={progPageDesc}
+    canonicalUrl={progCanonical}
+    noindex={!progData.isIndexable}
+    jsonLd={progJsonLd}
+  >
+    <div class="max-w-7xl mx-auto px-4 py-6">
+      <Breadcrumbs items={progBreadcrumbs} />
+
+      <!-- Hero Header -->
+      <div class="my-6 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="inline-flex items-center space-x-2 bg-blue-50 text-blue-800 text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded border border-blue-200 mb-2">
+              <span>Recruitment Hub</span>
+            </div>
+            <h1 class="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              {progData.page.heading}
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-600 mt-2 max-w-3xl leading-relaxed">
+              {progData.page.intro_content}
+            </p>
+          </div>
+
+          <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 text-center shrink-0">
+            <span class="block text-2xl sm:text-3xl font-black text-gov-navy">{progData.totalCount}</span>
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Opportunities</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Listings Grid -->
+      {progData.items.length > 0 ? (
+        <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {progData.items.map((job) => (
+              <JobCard job={job} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <EmptyState
+          title="No Active Vacancies Found Currently"
+          message="Recruitment notifications for this segment will appear here automatically once announced by commissions."
+          actionUrl="/jobs"
+          actionLabel="Explore All Government Jobs"
+        />
+      )}
+
+      <!-- Related Category Links -->
+      <div class="mt-12 pt-6 border-t border-slate-200">
+        <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Explore Related Government Jobs</h2>
+        <div class="flex flex-wrap gap-2 text-xs">
+          <a href="/jobs/10th-pass" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">10th Pass</a>
+          <a href="/jobs/12th-pass" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">12th Pass</a>
+          <a href="/jobs/graduate" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Graduate Level</a>
+          <a href="/jobs/railway" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Railway RRB</a>
+          <a href="/jobs/banking" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Banking PO/Clerk</a>
+          <a href="/jobs/defence" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Defence Forces</a>
+          <a href="/jobs/teaching" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Teaching Jobs</a>
+          <a href="/jobs/police" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium">Police Constable/SI</a>
+        </div>
+      </div>
+    </div>
+  </BaseLayout>
+) : (
+  <!-- ============================================== -->
+  <!-- SINGLE JOB POSTING RENDER                      -->
+  <!-- ============================================== -->
+  <BaseLayout
+    title={jobItem.seo_title || `${jobItem.title} — Apply Online & Notification`}
+    description={jobItem.meta_description || jobItem.excerpt || `Check ${jobItem.title} notification details, eligibility, application fee, exam dates, and apply online link.`}
+    canonicalUrl={jobCanonical}
+    noindex={isPreview || jobItem.status !== 'published'}
+    jsonLd={jobJsonLd}
+  >
+    {isPreview && <AdminPreviewBanner status={jobItem.status} itemId={jobItem.id} />}
+
+    <div class="max-w-5xl mx-auto px-4 py-6">
+      <Breadcrumbs items={jobBreadcrumbs} />
+
+      <article class="mt-4 bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs">
+        
+        <header class="border-b border-slate-200 pb-6 mb-6">
+          <div class="flex items-center space-x-2 mb-2 flex-wrap gap-y-1">
+            <span class="bg-gov-navy text-white text-[11px] font-bold px-2.5 py-0.5 rounded">
+              Government Job
+            </span>
+            {jobItem.organization_name && (
+              <a href={`/organizations/${jobItem.organization_slug || ''}`} class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold px-2.5 py-0.5 rounded border border-slate-200 transition-colors">
+                {jobItem.organization_name}
+              </a>
+            )}
+            <span class="bg-amber-100 text-amber-900 text-[11px] font-bold px-2.5 py-0.5 rounded">
+              {jobItem.calculated_status || 'Active'}
+            </span>
+          </div>
+
+          <h1 class="text-xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+            {jobItem.title}
+          </h1>
+
+          {jobItem.update_summary && (
+            <div class="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-950 flex items-start space-x-2">
+              <span class="bg-amber-600 text-white font-black text-[10px] px-1.5 py-0.5 rounded shrink-0">UPDATE</span>
+              <p class="font-medium">{jobItem.update_summary}</p>
+            </div>
+          )}
+        </header>
+
+        <!-- Key Summary Card -->
+        <JobSummaryTable item={jobItem} />
+
+        <!-- Important Action Links (Top) -->
+        <ImportantLinks links={actionLinks} title="Quick Apply & Official Links" />
+
+        <!-- Structured Article Body with Contextual Internal Links -->
+        {processedArticleContent ? (
+          <div class="prose prose-sm sm:prose max-w-none text-slate-800 leading-relaxed font-sans mt-8 divide-y-0 space-y-6">
+            <div class="article-markdown-body" set:html={processedArticleContent.replace(/## /g, '<h2 class="text-lg sm:text-xl font-bold text-slate-900 border-b border-slate-200 pb-2 mt-8 mb-4">').replace(/### /g, '<h3 class="text-base font-bold text-slate-800 mt-6 mb-2">').replace(/\n\n/g, '<br/><br/>')} />
+          </div>
+        ) : (
+          <div class="space-y-6 text-xs sm:text-sm text-slate-800 mt-6">
+            {jobItem.selection_process && (
+              <div>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 border-b border-slate-200 pb-2 mb-3">
+                  Selection Process & Exam Scheme
+                </h2>
+                <p class="leading-relaxed whitespace-pre-line">{jobItem.selection_process}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <!-- FAQs Section -->
+        {faqs.length > 0 && (
+          <FAQAccordion faqs={faqs} title={`Frequently Asked Questions: ${jobItem.post_name || jobItem.title}`} />
+        )}
+
+        <!-- Important Links Box (Bottom) -->
+        <ImportantLinks links={actionLinks} title="Official Direct Access Links" />
+
+        <!-- Source Box -->
+        <SourceBox
+          sourceName={jobItem.source_name || jobItem.organization_name}
+          sourceBaseUrl={jobItem.source_base_url || jobItem.organization_website}
+          officialNotificationUrl={jobItem.official_notification_url || extractedData.official_notification_url}
+          publishedAt={jobItem.published_at}
+          updatedAt={jobItem.updated_at}
+        />
+
+      </article>
+
+      <!-- Related Opportunities -->
+      {relatedJobs.length > 0 && (
+        <RelatedContent items={relatedJobs} title="Related Recruitment & Job Openings" />
+      )}
+
+    </div>
+  </BaseLayout>
+)}

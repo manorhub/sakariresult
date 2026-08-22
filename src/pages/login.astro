@@ -1,0 +1,139 @@
+---
+// src/pages/login.astro
+// User Login Page
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Login' },
+];
+---
+
+<BaseLayout
+  title="User Login — Sarkari Info Account"
+  description="Log in to your Sarkari Info account to access saved jobs, followed recruitment organizations, exam results, and email alerts."
+  noindex={true}
+>
+  <div class="max-w-md mx-auto px-4 py-12">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <div class="mt-6 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 rounded-xl bg-gov-navy text-white flex items-center justify-center font-black text-xl mx-auto mb-3 shadow-xs">
+          SI
+        </div>
+        <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Sign In to Your Account</h1>
+        <p class="text-xs text-slate-500 mt-1">Manage your saved jobs, exam hall tickets & alert preferences</p>
+      </div>
+
+      <div id="login-error" class="hidden mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold rounded-lg"></div>
+
+      <form id="user-login-form" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Email Address</label>
+          <input
+            type="email"
+            name="email"
+            placeholder="candidate@example.com"
+            required
+            class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 focus:border-gov-navy focus:bg-white focus:outline-none transition-colors"
+          />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="font-bold text-slate-700">Password</label>
+            <a href="/forgot-password" class="text-blue-600 hover:underline font-semibold text-[11px]">Forgot password?</a>
+          </div>
+          <input
+            type="password"
+            name="password"
+            placeholder="••••••••"
+            required
+            class="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 focus:border-gov-navy focus:bg-white focus:outline-none transition-colors"
+          />
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" name="rememberMe" class="rounded border-slate-300 text-gov-navy focus:ring-0" />
+            <span class="text-slate-600 text-[11px] font-medium">Remember me (30 days)</span>
+          </label>
+        </div>
+
+        <button
+          type="submit"
+          id="login-btn"
+          class="w-full bg-gov-navy hover:bg-slate-900 text-white font-bold py-3 rounded-xl transition-all shadow-xs text-sm mt-2"
+        >
+          Sign In
+        </button>
+      </form>
+
+      <div class="mt-6 pt-6 border-t border-slate-100 text-center text-xs text-slate-600">
+        Don't have an account?{' '}
+        <a href="/register" class="text-blue-600 hover:underline font-bold">Register for Free</a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById('user-login-form') as HTMLFormElement | null;
+  const errorEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn') as HTMLButtonElement | null;
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (errorEl) errorEl.classList.add('hidden');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Signing in...';
+      }
+
+      const formData = new FormData(form);
+      const payload = {
+        email: formData.get('email'),
+        password: formData.get('password'),
+        rememberMe: formData.get('rememberMe') === 'on',
+      };
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = (await res.json()) as any;
+
+        if (data.success) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectUrl = urlParams.get('redirect') || '/account';
+          window.location.href = redirectUrl;
+        } else {
+          if (errorEl) {
+            errorEl.textContent = data.error || 'Invalid credentials.';
+            errorEl.classList.remove('hidden');
+          }
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Sign In';
+          }
+        }
+      } catch (err: any) {
+        if (errorEl) {
+          errorEl.textContent = err.message || 'Network error occurred.';
+          errorEl.classList.remove('hidden');
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+        }
+      }
+    });
+  }
+</script>

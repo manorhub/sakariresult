@@ -1,0 +1,201 @@
+---
+// src/pages/admin/revenue/index.astro
+// Admin Revenue Tracking & Monetization Dashboard
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import type { RevenueRecord } from '../../../lib/monetization/types.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const records = (await db.query<RevenueRecord>(`
+  SELECT * FROM revenue_records
+  ORDER BY period_end DESC, created_at DESC
+  LIMIT 50
+`)).results;
+
+const stats = {
+  total: (await db.first<{ s: number }>('SELECT SUM(amount) as s FROM revenue_records'))?.s || 0,
+  ads: (await db.first<{ s: number }>('SELECT SUM(amount) as s FROM revenue_records WHERE revenue_type = "advertising"'))?.s || 0,
+  subscriptions: (await db.first<{ s: number }>('SELECT SUM(amount) as s FROM revenue_records WHERE revenue_type = "subscription"'))?.s || 0,
+  sponsored: (await db.first<{ s: number }>('SELECT SUM(amount) as s FROM revenue_records WHERE revenue_type = "sponsored"'))?.s || 0,
+};
+---
+
+<AdminLayout title="Revenue & Monetization Tracker">
+  <div class="space-y-6">
+    
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Revenue & Monetization Tracker</h1>
+        <p class="text-xs text-slate-500 mt-1">Real historical revenue records from advertising, subscriptions, and sponsored listings.</p>
+      </div>
+
+      <button
+        type="button"
+        id="open-rev-modal-btn"
+        class="px-4 py-2 bg-gov-navy hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0"
+      >
+        + Record New Revenue
+      </button>
+    </div>
+
+    <!-- Revenue Metrics -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Recorded</span>
+        <span class="text-2xl font-black text-slate-900 mt-1 block">₹{stats.total.toLocaleString('en-IN')}</span>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Display Ads</span>
+        <span class="text-2xl font-black text-emerald-600 mt-1 block">₹{stats.ads.toLocaleString('en-IN')}</span>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Subscriptions</span>
+        <span class="text-2xl font-black text-blue-600 mt-1 block">₹{stats.subscriptions.toLocaleString('en-IN')}</span>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Sponsored Listings</span>
+        <span class="text-2xl font-black text-amber-600 mt-1 block">₹{stats.sponsored.toLocaleString('en-IN')}</span>
+      </div>
+    </div>
+
+    <!-- Records Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Revenue History ({records.length})</h2>
+      </div>
+
+      {records.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-bold">
+                <th class="py-3 px-4">Period</th>
+                <th class="py-3 px-4">Type</th>
+                <th class="py-3 px-4">Source</th>
+                <th class="py-3 px-4">Amount</th>
+                <th class="py-3 px-4">Notes</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {records.map((r) => (
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 px-4 font-mono text-slate-700">{r.period_start} to {r.period_end}</td>
+                  <td class="py-3 px-4">
+                    <span class="bg-slate-100 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                      {r.revenue_type}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-slate-800">{r.source}</td>
+                  <td class="py-3 px-4 font-black text-slate-900">₹{r.amount.toLocaleString('en-IN')}</td>
+                  <td class="py-3 px-4 text-slate-500 max-w-xs truncate">{r.notes || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="p-12 text-center text-slate-400">
+          <span class="text-3xl block mb-2">📊</span>
+          <p class="font-bold text-slate-700">No revenue data available.</p>
+          <p class="text-xs text-slate-400 mt-1">Manual and automated revenue earnings will appear here.</p>
+        </div>
+      )}
+    </div>
+
+    <!-- Modal for adding revenue -->
+    <div id="rev-modal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 class="text-sm font-bold text-slate-900">Record Revenue Entry</h3>
+          <button type="button" id="close-rev-modal" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+        </div>
+
+        <form id="revenue-form" class="space-y-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Revenue Type</label>
+            <select name="revenue_type" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5">
+              <option value="advertising">Advertising (AdSense / Network)</option>
+              <option value="subscription">Subscriptions (Candidate Pro)</option>
+              <option value="sponsored">Sponsored Listings</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Amount (INR)</label>
+            <input type="number" step="0.01" name="amount" placeholder="5000.00" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Source Partner</label>
+            <input type="text" name="source" placeholder="Google AdSense" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Period Start</label>
+              <input type="date" name="period_start" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Period End</label>
+              <input type="date" name="period_end" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Notes / Invoice Ref</label>
+            <input type="text" name="notes" placeholder="Monthly payout" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5" />
+          </div>
+
+          <div class="pt-2 flex justify-end space-x-2">
+            <button type="button" id="cancel-rev-btn" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg">Cancel</button>
+            <button type="submit" class="px-5 py-2 bg-gov-navy text-white font-bold rounded-lg">Save Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</AdminLayout>
+
+<script>
+  const modal = document.getElementById('rev-modal');
+  const openBtn = document.getElementById('open-rev-modal-btn');
+  const closeBtn = document.getElementById('close-rev-modal');
+  const cancelBtn = document.getElementById('cancel-rev-btn');
+  const form = document.getElementById('revenue-form') as HTMLFormElement | null;
+
+  if (openBtn && modal) openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+  if (closeBtn && modal) closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+  if (cancelBtn && modal) cancelBtn.addEventListener('click', () => modal.classList.add('hidden'));
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const payload = {
+        revenue_type: formData.get('revenue_type'),
+        amount: parseFloat(formData.get('amount') as string),
+        source: formData.get('source'),
+        period_start: formData.get('period_start'),
+        period_end: formData.get('period_end'),
+        notes: formData.get('notes'),
+      };
+
+      try {
+        const res = await fetch('/api/admin/revenue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = (await res.json()) as any;
+        if (data.success) window.location.reload();
+      } catch {}
+    });
+  }
+</script>

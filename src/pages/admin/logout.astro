@@ -1,0 +1,7 @@
+---
+// src/pages/admin/logout.astro
+import { clearAdminSession } from '../../lib/auth';
+
+clearAdminSession(Astro.cookies);
+return Astro.redirect('/admin/login');
+---

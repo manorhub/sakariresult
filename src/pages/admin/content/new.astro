@@ -1,0 +1,494 @@
+---
+// src/pages/admin/content/new.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db';
+import type { Category, Organization, Source } from '../../../lib/types';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const categories = (await db.query<Category>('SELECT * FROM categories WHERE status = "active" ORDER BY sort_order ASC')).results;
+const organizations = (await db.query<Organization>('SELECT * FROM organizations WHERE status = "active" ORDER BY name ASC')).results;
+const sources = (await db.query<Source>('SELECT * FROM sources WHERE status = "active" ORDER BY name ASC')).results;
+---
+
+<AdminLayout title="Create Content Item" subtitle="Publish a new government job, exam result, admit card, or recruitment alert." activeNav="/admin/content">
+  
+  <div class="max-w-4xl bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+    <div id="form-alert" class="hidden mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700"></div>
+
+    <form id="content-form" class="space-y-8">
+      
+      <!-- Section 1: Basic Information -->
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-200 flex items-center space-x-2">
+          <span class="w-5 h-5 rounded-full bg-blue-600 text-white inline-flex items-center justify-center text-[10px]">1</span>
+          <span>Core Information</span>
+        </h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label for="type" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Content Type *
+            </label>
+            <select
+              id="type"
+              name="type"
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="job" selected>Government Job / Recruitment</option>
+              <option value="result">Exam Result / Scorecard</option>
+              <option value="admit_card">Admit Card / Hall Ticket</option>
+              <option value="answer_key">Answer Key & Solution</option>
+              <option value="exam">Exam Date / Schedule</option>
+              <option value="scholarship">Scholarship Scheme</option>
+              <option value="syllabus">Syllabus & Exam Pattern</option>
+              <option value="scheme">Government Scheme</option>
+              <option value="update">Important Circular / Notice</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="status" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Publication Status *
+            </label>
+            <select
+              id="status"
+              name="status"
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="draft">Draft (Private)</option>
+              <option value="review">Under Review</option>
+              <option value="published" selected>Published (Publicly Visible)</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label for="title" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Notification Title *
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              required
+              placeholder="e.g. SSC CGL 2026 Online Application Form for 14,000+ Vacancies"
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="slug" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                URL Slug
+              </label>
+              <span class="text-[11px] text-slate-400 font-mono">Leave blank to auto-generate</span>
+            </div>
+            <input
+              type="text"
+              id="slug"
+              name="slug"
+              placeholder="ssc-cgl-2026-online-form"
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="category_id" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Category
+              </label>
+              <select
+                id="category_id"
+                name="category_id"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Select Category --</option>
+                {categories.map((c) => (
+                  <option value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label for="organization_id" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Recruiting Body / Org
+              </label>
+              <select
+                id="organization_id"
+                name="organization_id"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Select Organization --</option>
+                {organizations.map((o) => (
+                  <option value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label for="source_id" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Linked Source
+              </label>
+              <select
+                id="source_id"
+                name="source_id"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- None / Manual Entry --</option>
+                {sources.map((s) => (
+                  <option value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Job / Recruitment Specification Details -->
+      <div id="job-details-section">
+        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-200 flex items-center space-x-2">
+          <span class="w-5 h-5 rounded-full bg-blue-600 text-white inline-flex items-center justify-center text-[10px]">2</span>
+          <span>Recruitment & Examination Details</span>
+        </h3>
+
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="post_name" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Post Name
+              </label>
+              <input
+                type="text"
+                id="post_name"
+                name="post_name"
+                placeholder="e.g. Assistant Audit Officer / Inspector"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="vacancy" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Total Vacancies
+              </label>
+              <input
+                type="text"
+                id="vacancy"
+                name="vacancy"
+                placeholder="e.g. 14,582 Posts"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="qualification" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Minimum Qualification
+              </label>
+              <input
+                type="text"
+                id="qualification"
+                name="qualification"
+                placeholder="e.g. Bachelor's Degree in Any Stream"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="age_limit" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Age Limit
+              </label>
+              <input
+                type="text"
+                id="age_limit"
+                name="age_limit"
+                placeholder="e.g. 18 to 30 Years (Age Relaxation as per rules)"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="salary" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Salary / Pay Scale
+              </label>
+              <input
+                type="text"
+                id="salary"
+                name="salary"
+                placeholder="e.g. Level 4 to Level 8 (Rs. 25,500 - 1,51,100)"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="application_start" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Application Start Date
+              </label>
+              <input
+                type="date"
+                id="application_start"
+                name="application_start"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="application_last_date" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Application Last Date
+              </label>
+              <input
+                type="date"
+                id="application_last_date"
+                name="application_last_date"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="exam_date" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Exam Date / Schedule
+              </label>
+              <input
+                type="text"
+                id="exam_date"
+                name="exam_date"
+                placeholder="e.g. Sept / Oct 2026 (Tier-I)"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="application_fee" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Application Fee
+              </label>
+              <input
+                type="text"
+                id="application_fee"
+                name="application_fee"
+                placeholder="e.g. Gen/OBC: ₹100 | SC/ST/Female: ₹0"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="selection_process" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Selection Process
+              </label>
+              <input
+                type="text"
+                id="selection_process"
+                name="selection_process"
+                placeholder="e.g. CBT Exam (Tier 1 & Tier 2) + Document Verification"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="official_notification_url" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Official PDF Notification URL
+              </label>
+              <input
+                type="url"
+                id="official_notification_url"
+                name="official_notification_url"
+                placeholder="https://ssc.gov.in/notice.pdf"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="official_apply_url" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Official Online Apply URL
+              </label>
+              <input
+                type="url"
+                id="official_apply_url"
+                name="official_apply_url"
+                placeholder="https://ssc.gov.in/apply"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="official_website_url" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Official Portal Website URL
+              </label>
+              <input
+                type="url"
+                id="official_website_url"
+                name="official_website_url"
+                placeholder="https://ssc.gov.in"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: SEO Engine & Meta Tags -->
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-200 flex items-center space-x-2">
+          <span class="w-5 h-5 rounded-full bg-blue-600 text-white inline-flex items-center justify-center text-[10px]">3</span>
+          <span>Search Engine Optimization (SEO)</span>
+        </h3>
+
+        <div class="space-y-4">
+          <div>
+            <label for="meta_title" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Custom Meta Title (Defaults to Notification Title)
+            </label>
+            <input
+              type="text"
+              id="meta_title"
+              name="meta_title"
+              placeholder="SSC CGL 2026 Notification, Apply Online for 14000+ Posts"
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="meta_description" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+              Meta Description (Search Snippet)
+            </label>
+            <textarea
+              id="meta_description"
+              name="meta_description"
+              rows="2"
+              placeholder="SSC CGL 2026 Recruitment Online Application Form, Eligibility Criteria, Age Limit, Salary, Syllabus, and Official Notification PDF download link..."
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            ></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="canonical_url" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Canonical URL Override
+              </label>
+              <input
+                type="url"
+                id="canonical_url"
+                name="canonical_url"
+                placeholder="https://sarkariinfo.org/jobs/..."
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label for="og_title" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Open Graph / Social Title
+              </label>
+              <input
+                type="text"
+                id="og_title"
+                name="og_title"
+                placeholder="SSC CGL 2026 Notification - Apply Now"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pt-6 border-t border-slate-200 flex items-center justify-end space-x-3">
+        <a
+          href="/admin/content"
+          class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+        >
+          Cancel
+        </a>
+        <button
+          type="submit"
+          id="btn-save"
+          class="px-6 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors cursor-pointer flex items-center space-x-2"
+        >
+          <span>Save & Publish Content</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('content-form') as HTMLFormElement;
+  const alertBox = document.getElementById('form-alert');
+  const btnSave = document.getElementById('btn-save') as HTMLButtonElement;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (alertBox) alertBox.classList.add('hidden');
+    if (btnSave) btnSave.disabled = true;
+
+    const formData = new FormData(form);
+
+    const payload = {
+      type: formData.get('type'),
+      status: formData.get('status'),
+      title: formData.get('title'),
+      slug: formData.get('slug'),
+      category_id: formData.get('category_id') || null,
+      organization_id: formData.get('organization_id') || null,
+      source_id: formData.get('source_id') || null,
+      
+      job: {
+        post_name: formData.get('post_name') || formData.get('title'),
+        vacancy: formData.get('vacancy'),
+        qualification: formData.get('qualification'),
+        age_limit: formData.get('age_limit'),
+        salary: formData.get('salary'),
+        application_start: formData.get('application_start'),
+        application_last_date: formData.get('application_last_date'),
+        exam_date: formData.get('exam_date'),
+        application_fee: formData.get('application_fee'),
+        selection_process: formData.get('selection_process'),
+        official_notification_url: formData.get('official_notification_url'),
+        official_apply_url: formData.get('official_apply_url'),
+        official_website_url: formData.get('official_website_url'),
+      },
+
+      seo: {
+        meta_title: formData.get('meta_title'),
+        meta_description: formData.get('meta_description'),
+        canonical_url: formData.get('canonical_url'),
+        og_title: formData.get('og_title'),
+      }
+    };
+
+    try {
+      const res = await fetch('/api/admin/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await res.json()) as any;
+      if (res.ok && data.success) {
+        window.location.href = '/admin/content';
+      } else {
+        if (alertBox) {
+          alertBox.textContent = data.error || 'Failed to save content item.';
+          alertBox.classList.remove('hidden');
+        }
+      }
+    } catch (err: any) {
+      if (alertBox) {
+        alertBox.textContent = 'Server communication error.';
+        alertBox.classList.remove('hidden');
+      }
+    } finally {
+      if (btnSave) btnSave.disabled = false;
+    }
+  });
+</script>

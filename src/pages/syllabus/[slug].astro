@@ -1,0 +1,100 @@
+---
+// src/pages/syllabus/[slug].astro
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import ImportantLinks from '../../components/ImportantLinks.astro';
+import SourceBox from '../../components/SourceBox.astro';
+import RelatedContent from '../../components/RelatedContent.astro';
+import FAQAccordion from '../../components/FAQAccordion.astro';
+import AdminPreviewBanner from '../../components/AdminPreviewBanner.astro';
+import { getDb } from '../../lib/db.ts';
+import { getContentItemBySlug, getRelatedContent } from '../../lib/public_queries.ts';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/syllabus');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const isPreviewQuery = Astro.url.searchParams.get('preview') === 'true';
+const { item, isPreview } = await getContentItemBySlug(db, 'syllabus', slug, { allowPreview: isPreviewQuery });
+
+if (!item) {
+  return Astro.redirect('/404');
+}
+
+let extractedData: any = {};
+let faqs: any[] = [];
+try { if (item.extracted_data_json) extractedData = JSON.parse(item.extracted_data_json); } catch {}
+try { if (item.faq_json) faqs = JSON.parse(item.faq_json); } catch {}
+
+const relatedItems = await getRelatedContent(db, item, 6);
+
+const actionLinks = [
+  { label: 'Download Detailed Syllabus PDF', url: item.official_notification_url || extractedData.official_notification_url, isPrimary: true, type: 'notification' as const },
+  { label: 'Official Examination Board Portal', url: item.organization_website || extractedData.official_website_url, type: 'official_site' as const },
+];
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Syllabus', href: '/syllabus' },
+  { label: item.title },
+];
+---
+
+<BaseLayout
+  title={item.seo_title || `${item.title} — Detailed Syllabus & Exam Pattern`}
+  description={item.meta_description || item.excerpt || `Download ${item.title} complete syllabus, exam scheme, and marks distribution PDF.`}
+  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/syllabus/${item.slug}`}
+>
+  {isPreview && <AdminPreviewBanner status={item.status} itemId={item.id} />}
+
+  <div class="max-w-5xl mx-auto px-4 py-6">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <article class="mt-4 bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs">
+      <header class="border-b border-slate-200 pb-6 mb-6">
+        <div class="flex items-center space-x-2 mb-2 flex-wrap gap-y-1">
+          <span class="bg-indigo-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded">
+            Exam Syllabus
+          </span>
+          {item.organization_name && (
+            <span class="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-0.5 rounded border border-slate-200">
+              {item.organization_name}
+            </span>
+          )}
+        </div>
+
+        <h1 class="text-xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+          {item.title}
+        </h1>
+      </header>
+
+      <ImportantLinks links={actionLinks} title="Syllabus PDF & Official Scheme Links" />
+
+      {item.article_content ? (
+        <div class="prose prose-sm sm:prose max-w-none text-slate-800 leading-relaxed font-sans mt-8 divide-y-0 space-y-6">
+          <div class="article-markdown-body" set:html={item.article_content.replace(/## /g, '<h2 class="text-lg sm:text-xl font-bold text-slate-900 border-b border-slate-200 pb-2 mt-8 mb-4">').replace(/### /g, '<h3 class="text-base font-bold text-slate-800 mt-6 mb-2">').replace(/\n\n/g, '<br/><br/>')} />
+        </div>
+      ) : (
+        <p class="text-xs sm:text-sm text-slate-700 mt-4 leading-relaxed">{item.excerpt || item.title}</p>
+      )}
+
+      {faqs.length > 0 && (
+        <FAQAccordion faqs={faqs} title={`Frequently Asked Questions: ${item.title}`} />
+      )}
+
+      <SourceBox
+        sourceName={item.source_name || item.organization_name}
+        sourceBaseUrl={item.source_base_url || item.organization_website}
+        officialNotificationUrl={item.official_notification_url || extractedData.official_notification_url}
+        publishedAt={item.published_at}
+        updatedAt={item.updated_at}
+      />
+    </article>
+
+    {relatedItems.length > 0 && (
+      <RelatedContent items={relatedItems} title="Related Syllabus & Exam Guides" />
+    )}
+  </div>
+</BaseLayout>

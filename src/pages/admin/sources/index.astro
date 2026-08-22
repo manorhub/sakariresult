@@ -1,0 +1,366 @@
+---
+// src/pages/admin/sources/index.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db';
+import type { Source } from '../../../lib/types';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+// Query sources with aggregated page counts from source_pages
+const sources = (await db.query<Source>(`
+  SELECT s.*,
+    COUNT(sp.id) as pages_discovered,
+    SUM(CASE WHEN sp.last_status = 'UPDATED' THEN 1 ELSE 0 END) as pages_changed,
+    (SELECT COUNT(*) FROM crawl_logs cl WHERE cl.source_id = s.id) as crawl_count
+  FROM sources s
+  LEFT JOIN source_pages sp ON sp.source_id = s.id
+  GROUP BY s.id
+  ORDER BY s.priority DESC, s.created_at DESC
+`)).results;
+---
+
+<AdminLayout title="Source Management — Crawler Config">
+  <div class="space-y-6">
+    
+    <!-- Top Action Bar -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+      <div>
+        <h1 class="text-xl font-bold text-slate-900 tracking-tight">Crawler Sources</h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Monitor and configure official government portals, RSS feeds, XML sitemaps, and JSON endpoints.
+        </p>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button
+          id="btn-test-custom"
+          class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors flex items-center space-x-1.5"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span>Test URL</span>
+        </button>
+
+        <a
+          href="/admin/sources/new"
+          class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition-colors flex items-center space-x-1.5"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Add Source</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div id="action-alert" class="hidden p-4 rounded-xl text-xs font-semibold"></div>
+
+    <!-- Sources Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      {sources.length === 0 ? (
+        <div class="p-12 text-center text-slate-500">
+          <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          </svg>
+          <p class="text-sm font-semibold text-slate-700">No sources configured yet</p>
+          <p class="text-xs text-slate-400 mt-1">Add your first official recruitment portal to begin automated crawling.</p>
+          <a
+            href="/admin/sources/new"
+            class="inline-block mt-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition-colors"
+          >
+            Register Official Source
+          </a>
+        </div>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                <th class="py-3.5 px-4">Source & URL</th>
+                <th class="py-3.5 px-4">Type</th>
+                <th class="py-3.5 px-4">Health</th>
+                <th class="py-3.5 px-4">Priority / Freq</th>
+                <th class="py-3.5 px-4">Discovered</th>
+                <th class="py-3.5 px-4">Last Crawled</th>
+                <th class="py-3.5 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+              {sources.map((src) => {
+                const health = src.health_status || 'healthy';
+                return (
+                  <tr class="hover:bg-slate-50/50 transition-colors">
+                    
+                    <!-- Source Name & Link -->
+                    <td class="py-3.5 px-4">
+                      <div class="font-bold text-slate-900">{src.name}</div>
+                      <a
+                        href={src.base_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        class="text-[11px] text-blue-600 hover:underline truncate max-w-xs block font-mono mt-0.5"
+                      >
+                        {src.base_url}
+                      </a>
+                    </td>
+
+                    <!-- Source Type Badge -->
+                    <td class="py-3.5 px-4">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200">
+                        {src.source_type}
+                      </span>
+                    </td>
+
+                    <!-- Health Status -->
+                    <td class="py-3.5 px-4">
+                      {health === 'healthy' && (
+                        <span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span>Healthy</span>
+                        </span>
+                      )}
+                      {health === 'warning' && (
+                        <span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          <span>Warning</span>
+                        </span>
+                      )}
+                      {health === 'failed' && (
+                        <span class="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                          <span>Failed</span>
+                        </span>
+                      )}
+                    </td>
+
+                    <!-- Priority & Frequency -->
+                    <td class="py-3.5 px-4">
+                      <div class="flex items-center space-x-1 font-bold text-slate-800">
+                        <span>P{src.priority || 3}</span>
+                        <span class="text-slate-300">•</span>
+                        <span class="text-slate-500 font-normal">{src.crawl_frequency}</span>
+                      </div>
+                    </td>
+
+                    <!-- Discovered / Changed Pages -->
+                    <td class="py-3.5 px-4">
+                      <div class="font-bold text-slate-900">{src.pages_discovered || 0} pages</div>
+                      <div class="text-[10px] text-slate-400">
+                        {src.pages_changed || 0} updated • {src.crawl_count || 0} crawls
+                      </div>
+                    </td>
+
+                    <!-- Last Checked -->
+                    <td class="py-3.5 px-4">
+                      {src.last_checked_at ? (
+                        <div>
+                          <div class="font-medium text-slate-700">{new Date(src.last_checked_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                          <div class="text-[10px] text-slate-400">{new Date(src.last_checked_at).toLocaleDateString('en-IN')}</div>
+                        </div>
+                      ) : (
+                        <span class="text-slate-400 italic">Never</span>
+                      )}
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="py-3.5 px-4 text-right">
+                      <div class="flex items-center justify-end space-x-2">
+                        <!-- Test Button -->
+                        <button
+                          data-test-id={src.id}
+                          data-test-name={src.name}
+                          class="btn-test-source p-1.5 rounded text-slate-500 hover:text-blue-600 hover:bg-slate-100 transition-colors"
+                          title="Test Source (Dry Run)"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </button>
+
+                        <!-- Run Now Button -->
+                        <button
+                          data-crawl-id={src.id}
+                          class="btn-run-source px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] transition-colors"
+                        >
+                          Run Now
+                        </button>
+
+                        <!-- Edit Button -->
+                        <a
+                          href={`/admin/sources/${src.id}`}
+                          class="p-1.5 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                          title="Edit Source"
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </a>
+                      </div>
+                    </td>
+
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+
+  </div>
+
+  <!-- Test Source Modal -->
+  <div id="test-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div>
+          <h3 id="modal-title" class="font-bold text-slate-900 text-sm">Test Source Diagnostics</h3>
+          <p class="text-[11px] text-slate-500">Live dry-run crawler execution results</p>
+        </div>
+        <button id="modal-close" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto flex-1 space-y-4 text-xs font-mono">
+        <div id="modal-loader" class="py-8 text-center text-slate-500 font-sans">
+          <div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <span>Connecting to source endpoint and analyzing links...</span>
+        </div>
+        <div id="modal-results" class="hidden space-y-3"></div>
+      </div>
+
+      <div class="p-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+        <button id="modal-done-btn" class="px-4 py-1.5 rounded-lg bg-slate-900 text-white font-semibold text-xs hover:bg-slate-800">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  const alertBox = document.getElementById('action-alert');
+  const modal = document.getElementById('test-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const modalLoader = document.getElementById('modal-loader');
+  const modalResults = document.getElementById('modal-results');
+  const modalClose = document.getElementById('modal-close');
+  const modalDoneBtn = document.getElementById('modal-done-btn');
+
+  function closeModal() {
+    modal?.classList.add('hidden');
+  }
+  modalClose?.addEventListener('click', closeModal);
+  modalDoneBtn?.addEventListener('click', closeModal);
+
+  function showAlert(msg: string, type: 'success' | 'error') {
+    if (!alertBox) return;
+    alertBox.textContent = msg;
+    alertBox.className = `p-4 rounded-xl text-xs font-semibold ${
+      type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+    }`;
+    alertBox.classList.remove('hidden');
+    setTimeout(() => alertBox?.classList.add('hidden'), 6000);
+  }
+
+  // Handle "Run Now" buttons
+  document.querySelectorAll('.btn-run-source').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      const button = e.currentTarget as HTMLButtonElement;
+      const sourceId = button.getAttribute('data-crawl-id');
+      if (!sourceId) return;
+
+      button.disabled = true;
+      const originalText = button.textContent;
+      button.textContent = 'Running...';
+
+      try {
+        const res = await fetch('/api/admin/sources/crawl', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceId }),
+        });
+        const data = (await res.json()) as any;
+
+        if (res.ok && data.success) {
+          showAlert(data.message || 'Crawl completed successfully.', 'success');
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          showAlert(data.error || 'Crawl failed.', 'error');
+          button.disabled = false;
+          button.textContent = originalText;
+        }
+      } catch (err: any) {
+        showAlert(err?.message || 'Network error during crawl.', 'error');
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    });
+  });
+
+  // Handle "Test Source" buttons
+  document.querySelectorAll('.btn-test-source').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      const button = e.currentTarget as HTMLButtonElement;
+      const sourceId = button.getAttribute('data-test-id');
+      const sourceName = button.getAttribute('data-test-name') || 'Source';
+      if (!sourceId) return;
+
+      if (modalTitle) modalTitle.textContent = `Testing: ${sourceName}`;
+      modal?.classList.remove('hidden');
+      modalLoader?.classList.remove('hidden');
+      modalResults?.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/admin/sources/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceId }),
+        });
+        const data = (await res.json()) as any;
+
+        modalLoader?.classList.add('hidden');
+        modalResults?.classList.remove('hidden');
+
+        if (modalResults && data.summary) {
+          const s = data.summary;
+          modalResults.innerHTML = `
+            <div class="p-3 bg-slate-100 rounded-lg space-y-1">
+              <div class="font-bold text-slate-800">Status: <span class="${s.status === 'failed' ? 'text-rose-600' : 'text-emerald-600'}">${s.status.toUpperCase()}</span> (HTTP ${s.httpStatus || 'N/A'})</div>
+              <div class="text-slate-600">Response Time: ${s.durationMs}ms | Content-Type: ${s.diagnosticInfo?.contentType || 'N/A'}</div>
+              <div class="text-slate-600">Robots.txt Allowed: ${s.diagnosticInfo?.robotsAllowed ? 'YES' : 'NO'}</div>
+              <div class="text-slate-600">Discovered Items: ${s.urlsDiscovered} (${s.newItems} New, ${s.updatedItems} Updated, ${s.unchangedItems} Unchanged)</div>
+            </div>
+            ${s.errorMessage ? `<div class="p-3 bg-rose-50 text-rose-700 rounded-lg font-bold">${s.errorMessage}</div>` : ''}
+            <div>
+              <div class="font-bold text-slate-700 font-sans text-xs mb-2">Discovered Items Preview:</div>
+              <div class="space-y-1 max-h-60 overflow-y-auto">
+                ${(s.results || []).map((r: any) => `
+                  <div class="p-2 border border-slate-200 rounded text-[11px]">
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-slate-800 truncate">${r.item.title || 'Untitled'}</span>
+                      <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${r.status === 'NEW' ? 'bg-emerald-100 text-emerald-800' : r.status === 'UPDATED' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'}">${r.status}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate mt-0.5">${r.item.url}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+      } catch (err: any) {
+        modalLoader?.classList.add('hidden');
+        if (modalResults) {
+          modalResults.classList.remove('hidden');
+          modalResults.innerHTML = `<div class="p-3 bg-rose-50 text-rose-700 rounded-lg">Test failed: ${err?.message}</div>`;
+        }
+      }
+    });
+  });
+</script>

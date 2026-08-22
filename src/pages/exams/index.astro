@@ -1,0 +1,92 @@
+---
+// src/pages/exams/index.astro
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentCard from '../../components/ContentCard.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import Pagination from '../../components/Pagination.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { getDb } from '../../lib/db.ts';
+import { getCategoryContent } from '../../lib/public_queries.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const url = new URL(Astro.request.url);
+const page = parseInt(url.searchParams.get('page') || '1', 10);
+const organizationSlug = url.searchParams.get('organization') || '';
+
+const result = await getCategoryContent(db, 'exam', {
+  page,
+  limit: 12,
+  organizationSlug,
+});
+
+const orgs = (await db.query<{ name: string; slug: string }>('SELECT name, slug FROM organizations ORDER BY name ASC')).results;
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Government Exam Calendar' },
+];
+---
+
+<BaseLayout
+  title="Government Exam Calendar 2026 — Upcoming Exam Dates, Schedules & Shifts"
+  description="Stay updated with the latest Indian government recruitment examination schedules, shift timings, syllabus, and important date calendars for UPSC, SSC, Railways, and Banking."
+>
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <div class="my-6">
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+        Government Exam Calendar & Schedules 2026
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl">
+        Comprehensive timeline of national and state-level recruitment examinations, Tier-I/II dates, and exam center announcements.
+      </p>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white rounded-xl border border-slate-200 p-4 mb-8 shadow-xs flex flex-wrap gap-4 items-center justify-between">
+      <form action="/exams" method="GET" class="flex items-center space-x-3 w-full sm:w-auto">
+        <label class="text-xs font-bold text-slate-700 uppercase">Authority:</label>
+        <select
+          name="organization"
+          class="text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none"
+          onchange="this.form.submit()"
+        >
+          <option value="">All Authorities</option>
+          {orgs.map((o) => (
+            <option value={o.slug} selected={organizationSlug === o.slug}>
+              {o.name}
+            </option>
+          ))}
+        </select>
+      </form>
+      <span class="text-xs text-slate-500 font-medium">Showing {result.total} scheduled exams</span>
+    </div>
+
+    {result.items.length > 0 ? (
+      <>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {result.items.map((item) => (
+            <ContentCard item={item} />
+          ))}
+        </div>
+
+        <Pagination
+          currentPage={result.page}
+          totalPages={result.totalPages}
+          baseUrl="/exams"
+          searchParams={{ organization: organizationSlug }}
+        />
+      </>
+    ) : (
+      <EmptyState
+        title="No Upcoming Exam Schedules"
+        message="Exam schedule announcements will appear here as soon as published by examination boards."
+        actionUrl="/exams"
+        actionLabel="View All Exams"
+      />
+    )}
+  </div>
+</BaseLayout>

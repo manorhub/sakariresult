@@ -1,0 +1,182 @@
+---
+// src/pages/jobs/index.astro
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import JobCard from '../../components/JobCard.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import Pagination from '../../components/Pagination.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { getDb } from '../../lib/db.ts';
+import { getCategoryContent, INDIAN_STATES } from '../../lib/public_queries.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const url = new URL(Astro.request.url);
+const page = parseInt(url.searchParams.get('page') || '1', 10);
+const qualification = url.searchParams.get('qualification') || '';
+const organizationSlug = url.searchParams.get('organization') || '';
+const categorySlug = url.searchParams.get('category') || '';
+const state = url.searchParams.get('state') || '';
+const sort = (url.searchParams.get('sort') || 'latest') as 'latest' | 'deadline' | 'vacancies';
+
+const result = await getCategoryContent(db, 'job', {
+  page,
+  limit: 12,
+  qualification,
+  organizationSlug,
+  categorySlug,
+  state,
+  sort,
+});
+
+// Fetch active organizations and categories for filter dropdowns
+const orgs = (await db.query<{ name: string; slug: string }>('SELECT name, slug FROM organizations ORDER BY name ASC')).results;
+const categories = (await db.query<{ name: string; slug: string }>('SELECT name, slug FROM categories ORDER BY name ASC')).results;
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Latest Government Jobs' },
+];
+---
+
+<BaseLayout
+  title="Latest Government Jobs 2026 — Sarkari Recruitment Notifications & Online Form"
+  description="Explore active central and state government job vacancies for 2026. Filter by qualification, department, and deadline. Apply online with verified links."
+>
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <!-- Page Header -->
+    <div class="my-6">
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+        Latest Government Jobs & Recruitment 2026
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl">
+        Verified official employment notices across Central Government ministries, Defence forces, Railways, Banking institutions, and State Public Service Commissions.
+      </p>
+    </div>
+
+    <!-- Filters & Sorting Bar -->
+    <div class="bg-white rounded-xl border border-slate-200 p-4 mb-8 shadow-xs">
+      <form action="/jobs" method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+        
+        <!-- Qualification Filter -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Qualification</label>
+          <select
+            name="qualification"
+            class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none"
+            onchange="this.form.submit()"
+          >
+            <option value="">All Qualifications</option>
+            <option value="10th" selected={qualification === '10th'}>10th Pass</option>
+            <option value="12th" selected={qualification === '12th'}>12th Pass / Intermediate</option>
+            <option value="Graduate" selected={qualification === 'Graduate'}>Graduate / Degree</option>
+            <option value="Post Graduate" selected={qualification === 'Post Graduate'}>Post Graduate</option>
+            <option value="Diploma" selected={qualification === 'Diploma'}>Diploma</option>
+            <option value="B.Tech" selected={qualification === 'B.Tech'}>B.Tech / B.E.</option>
+          </select>
+        </div>
+
+        <!-- Organization Filter -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Organization</label>
+          <select
+            name="organization"
+            class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none"
+            onchange="this.form.submit()"
+          >
+            <option value="">All Organizations</option>
+            {orgs.map((o) => (
+              <option value={o.slug} selected={organizationSlug === o.slug}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <!-- Category Filter -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Category</label>
+          <select
+            name="category"
+            class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none"
+            onchange="this.form.submit()"
+          >
+            <option value="">All Categories</option>
+            {categories.map((c) => (
+              <option value={c.slug} selected={categorySlug === c.slug}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <!-- State Filter -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">State</label>
+          <select
+            name="state"
+            class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none"
+            onchange="this.form.submit()"
+          >
+            <option value="">All India / Central</option>
+            {INDIAN_STATES.map((s) => (
+              <option value={s.name} selected={state === s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <!-- Sorting -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Sort By</label>
+          <select
+            name="sort"
+            class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2 focus:border-gov-navy focus:outline-none"
+            onchange="this.form.submit()"
+          >
+            <option value="latest" selected={sort === 'latest'}>Newest First</option>
+            <option value="deadline" selected={sort === 'deadline'}>Closing Soonest</option>
+            <option value="vacancies" selected={sort === 'vacancies'}>Most Vacancies</option>
+          </select>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Listings Grid -->
+    {result.items.length > 0 ? (
+      <>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {result.items.map((job) => (
+            <JobCard job={job} />
+          ))}
+        </div>
+
+        <!-- Pagination -->
+        <Pagination
+          currentPage={result.page}
+          totalPages={result.totalPages}
+          baseUrl="/jobs"
+          searchParams={{
+            qualification,
+            organization: organizationSlug,
+            category: categorySlug,
+            state,
+            sort,
+          }}
+        />
+      </>
+    ) : (
+      <EmptyState
+        title="No Matching Government Jobs Found"
+        message="Try adjusting your filter criteria or view all active listings."
+        actionUrl="/jobs"
+        actionLabel="Reset All Filters"
+      />
+    )}
+
+  </div>
+</BaseLayout>

@@ -1,0 +1,207 @@
+---
+// src/components/Header.astro
+interface Props {
+  announcement?: string | null;
+}
+
+const { announcement } = Astro.props;
+const pathname = Astro.url.pathname;
+const userSession = (Astro.locals as any).userSession;
+
+const navLinks = [
+  { name: 'Home', href: '/' },
+  { name: 'Latest Jobs', href: '/jobs' },
+  { name: 'Results', href: '/results' },
+  { name: 'Admit Card', href: '/admit-card' },
+  { name: 'Answer Key', href: '/answer-key' },
+  { name: 'Exams', href: '/exams' },
+  { name: 'Scholarships', href: '/scholarships' },
+  { name: 'Syllabus', href: '/syllabus' },
+  { name: 'Govt Schemes', href: '/schemes' },
+  { name: 'Updates', href: '/important-updates' },
+];
+
+const currentDate = new Intl.DateTimeFormat('en-IN', {
+  weekday: 'short',
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'Asia/Kolkata'
+}).format(new Date());
+---
+
+<header class="bg-gov-navy text-white sticky top-0 z-40 shadow-md border-b-2 border-gov-saffron">
+  
+  <!-- Dynamic Announcement Bar (If configured by admin) -->
+  {announcement && (
+    <div class="bg-gradient-to-r from-amber-600 to-orange-600 text-white text-xs font-semibold py-1.5 px-4 text-center border-b border-amber-500 shadow-inner flex items-center justify-center space-x-2">
+      <span class="bg-white/20 text-white text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded animate-pulse">Important</span>
+      <span class="truncate max-w-4xl">{announcement}</span>
+    </div>
+  )}
+
+  <!-- Top Utility Bar -->
+  <div class="bg-slate-950 text-slate-300 text-xs py-1.5 px-4 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="font-medium text-slate-200">Live Portal</span>
+        <span class="hidden sm:inline text-slate-400">| Free & Fast Government Examination Alerts</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="hidden md:inline text-slate-300">{currentDate}</span>
+        <a href="/search" class="text-xs text-amber-400 hover:text-amber-300 font-medium flex items-center space-x-1">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span>Search Portal</span>
+        </a>
+        <a href="/admin/login" class="text-xs text-slate-400 hover:text-white transition-colors">
+          Admin &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Branding Bar -->
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="/" class="flex items-center space-x-3 group">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-gov-saffron to-amber-500 flex items-center justify-center text-white font-black text-xl shadow-sm">
+        SI
+      </div>
+      <div>
+        <div class="flex items-center space-x-1.5">
+          <span class="text-xl sm:text-2xl font-black tracking-tight text-white group-hover:text-amber-400 transition-colors">
+            SARKARI<span class="text-gov-saffron">INFO</span>
+          </span>
+          <span class="bg-gov-saffron/20 text-amber-300 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border border-gov-saffron/40">
+            Govt Alerts
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-300 hidden sm:block">
+          India's Premier Official Jobs, Admit Cards & Results Information
+        </p>
+      </div>
+    </a>
+
+      {userSession ? (
+        <a
+          href="/account"
+          class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 transition-colors"
+        >
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>My Account</span>
+        </a>
+      ) : (
+        <a
+          href="/login"
+          class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+        >
+          Sign In
+        </a>
+      )}
+
+      <a href="/jobs" class="inline-flex items-center px-3.5 py-1.5 text-xs font-semibold rounded-md bg-gov-saffron hover:bg-orange-600 text-white shadow-sm transition-colors">
+        Find Jobs
+      </a>
+
+      <!-- Mobile Menu Button -->
+      <button 
+        id="mobile-menu-btn" 
+        type="button" 
+        class="lg:hidden p-2 rounded-md text-slate-200 hover:text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+        aria-label="Toggle Navigation Menu"
+      >
+        <svg id="menu-icon-open" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <svg id="menu-icon-close" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Navigation Links (Desktop) -->
+  <nav class="hidden lg:block bg-slate-900 border-t border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 flex items-center overflow-x-auto space-x-1">
+      {navLinks.map((link) => {
+        const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+        return (
+          <a
+            href={link.href}
+            class={`whitespace-nowrap px-3.5 py-2.5 text-xs uppercase font-bold tracking-wider transition-colors border-b-2 ${
+              isActive 
+                ? 'text-amber-400 border-amber-400 bg-slate-800/60' 
+                : 'text-slate-200 border-transparent hover:text-white hover:bg-slate-800/40 hover:border-slate-400'
+            }`}
+          >
+            {link.name}
+          </a>
+        );
+      })}
+    </div>
+  </nav>
+
+  <!-- Mobile Navigation Menu Drawer -->
+  <div id="mobile-menu" class="hidden lg:hidden bg-slate-900 border-t border-slate-800 px-4 pt-2 pb-4 space-y-1">
+    <div class="mb-3 pt-1">
+      <form action="/search" method="GET" class="relative">
+        <input
+          type="text"
+          name="q"
+          placeholder="Search jobs, exams, results..."
+          class="w-full bg-slate-800 text-white placeholder-slate-400 text-xs rounded-lg pl-8 pr-3 py-2 border border-slate-700 focus:outline-none focus:border-amber-400"
+        />
+        <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </form>
+    </div>
+
+    <div class="grid grid-cols-2 gap-1 pb-2">
+      {navLinks.map((link) => {
+        const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
+        return (
+          <a
+            href={link.href}
+            class={`px-3 py-2 rounded-md text-xs font-semibold transition-colors ${
+              isActive
+                ? 'bg-gov-saffron text-white'
+                : 'text-slate-200 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            {link.name}
+          </a>
+        );
+      })}
+    </div>
+
+    <div class="pt-2 border-t border-slate-800 flex justify-between text-xs">
+      <a href="/organizations" class="text-slate-400 hover:text-amber-400 py-1">Browse Organizations</a>
+      <a href="/states" class="text-slate-400 hover:text-amber-400 py-1">State Jobs</a>
+    </div>
+  </div>
+</header>
+
+<script>
+  const menuBtn = document.getElementById('mobile-menu-btn');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const iconOpen = document.getElementById('menu-icon-open');
+  const iconClose = document.getElementById('menu-icon-close');
+
+  if (menuBtn && mobileMenu) {
+    menuBtn.addEventListener('click', () => {
+      const isExpanded = !mobileMenu.classList.contains('hidden');
+      if (isExpanded) {
+        mobileMenu.classList.add('hidden');
+        iconOpen?.classList.remove('hidden');
+        iconClose?.classList.add('hidden');
+      } else {
+        mobileMenu.classList.remove('hidden');
+        iconOpen?.classList.add('hidden');
+        iconClose?.classList.remove('hidden');
+      }
+    });
+  }
+</script>

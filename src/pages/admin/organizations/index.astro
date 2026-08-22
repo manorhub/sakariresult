@@ -1,0 +1,143 @@
+---
+// src/pages/admin/organizations/index.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db';
+import { formatDate } from '../../../lib/utils';
+import type { Organization } from '../../../lib/types';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const organizations = (await db.query<Organization>(`
+  SELECT o.*, COUNT(ci.id) as content_count
+  FROM organizations o
+  LEFT JOIN content_items ci ON ci.organization_id = o.id
+  GROUP BY o.id
+  ORDER BY o.name ASC
+`)).results;
+---
+
+<AdminLayout title="Organizations & Recruiting Bodies" subtitle="Manage government departments, commissions, and exam conducting boards." activeNav="/admin/organizations">
+  
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div>
+      <span class="text-xs text-slate-500">Showing {organizations.length} recruiting agencies / boards</span>
+    </div>
+    <a
+      href="/admin/organizations/new"
+      class="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+      <span>+ Add Organization</span>
+    </a>
+  </div>
+
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-600">
+        <thead class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          <tr>
+            <th class="px-6 py-3.5">Organization Name</th>
+            <th class="px-6 py-3.5">Slug</th>
+            <th class="px-6 py-3.5">Official Website</th>
+            <th class="px-6 py-3.5">Total Posts</th>
+            <th class="px-6 py-3.5">Status</th>
+            <th class="px-6 py-3.5">Updated</th>
+            <th class="px-6 py-3.5 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {organizations.length === 0 ? (
+            <tr>
+              <td colspan="7" class="px-6 py-8 text-center text-slate-400">
+                No organizations added yet. Click "+ Add Organization" (e.g. UPSC, SSC, IBPS, Railways).
+              </td>
+            </tr>
+          ) : (
+            organizations.map((org) => (
+              <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="px-6 py-4">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs">
+                      {org.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <span class="font-bold text-slate-900">{org.name}</span>
+                      {org.description && <p class="text-[11px] text-slate-400 line-clamp-1">{org.description}</p>}
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 font-mono text-slate-500">{org.slug}</td>
+                <td class="px-6 py-4">
+                  {org.website ? (
+                    <a href={org.website} target="_blank" class="text-blue-600 hover:underline flex items-center space-x-1">
+                      <span class="truncate max-w-xs">{org.website}</span>
+                      <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  ) : (
+                    <span class="text-slate-400">—</span>
+                  )}
+                </td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">
+                    {org.content_count || 0} items
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <span class={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold uppercase ${
+                    org.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {org.status}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-slate-400">{formatDate(org.updated_at)}</td>
+                <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                  <a
+                    href={`/admin/organizations/${org.id}`}
+                    class="px-2.5 py-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                  >
+                    Edit
+                  </a>
+                  <button
+                    data-id={org.id}
+                    data-name={org.name}
+                    class="btn-delete-org px-2.5 py-1 text-xs font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-md transition-colors"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</AdminLayout>
+
+<script>
+  document.querySelectorAll('.btn-delete-org').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const name = btn.getAttribute('data-name');
+      if (!confirm(`Are you sure you want to delete organization "${name}"?`)) return;
+
+      try {
+        const res = await fetch(`/api/admin/organizations/${id}`, { method: 'DELETE' });
+        const data = (await res.json()) as any;
+        if (res.ok && data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to delete organization.');
+        }
+      } catch (err) {
+        alert('Network error while deleting organization.');
+      }
+    });
+  });
+</script>

@@ -1,0 +1,169 @@
+---
+// src/pages/admin/seo/index.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import { runSeoHealthAudit } from '../../../lib/seo/audit.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const audit = await runSeoHealthAudit(db);
+---
+
+<AdminLayout title="SEO Dashboard & Health Audit">
+  <div class="space-y-6">
+    
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Technical SEO & Audit Dashboard</h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Automated crawl efficiency, structured data validation, orphan page detection & indexability metrics.
+        </p>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <a href="/admin/seo/redirects" class="px-3 py-2 text-xs font-bold bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+          Manage 301 Redirects
+        </a>
+        <a href="/admin/seo/settings" class="px-3 py-2 text-xs font-bold bg-gov-navy text-white rounded-lg hover:bg-slate-900 transition-colors">
+          SEO Settings
+        </a>
+      </div>
+    </div>
+
+    <!-- Health Score & Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Score -->
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">SEO Health Score</span>
+          <span class={`text-3xl font-black ${audit.auditScore >= 80 ? 'text-emerald-600' : (audit.auditScore >= 50 ? 'text-amber-600' : 'text-rose-600')}`}>
+            {audit.auditScore}%
+          </span>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-lg">
+          📈
+        </div>
+      </div>
+
+      <!-- Indexable -->
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Indexable Pages</span>
+          <span class="text-3xl font-black text-slate-900">{audit.totalIndexable}</span>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-lg">
+          ✓
+        </div>
+      </div>
+
+      <!-- Orphan Pages -->
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Orphan Pages</span>
+          <span class={`text-3xl font-black ${audit.orphanPages.length > 0 ? 'text-amber-600' : 'text-slate-900'}`}>
+            {audit.orphanPages.length}
+          </span>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-lg">
+          🔗
+        </div>
+      </div>
+
+      <!-- Duplicate Titles -->
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Duplicate Titles</span>
+          <span class={`text-3xl font-black ${audit.duplicateTitles.length > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+            {audit.duplicateTitles.length}
+          </span>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-lg">
+          ⚠️
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick Sitemap Links -->
+    <div class="bg-slate-900 text-white rounded-xl p-5 border border-slate-800">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+        <div>
+          <h3 class="text-sm font-bold text-white">Live XML Sitemaps (Google Search Console Ready)</h3>
+          <p class="text-xs text-slate-400">Accurate lastmod timestamps dynamically pulled from verified D1 records.</p>
+        </div>
+        <a href="/sitemap.xml" target="_blank" class="text-xs text-amber-400 hover:underline font-bold shrink-0">
+          View /sitemap.xml &rarr;
+        </a>
+      </div>
+
+      <div class="flex flex-wrap gap-2 text-xs">
+        <a href="/sitemaps/jobs.xml" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">/sitemaps/jobs.xml</a>
+        <a href="/sitemaps/results.xml" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">/sitemaps/results.xml</a>
+        <a href="/sitemaps/admit-card.xml" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">/sitemaps/admit-card.xml</a>
+        <a href="/sitemaps/answer-key.xml" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">/sitemaps/answer-key.xml</a>
+        <a href="/sitemaps/exams.xml" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">/sitemaps/exams.xml</a>
+        <a href="/sitemaps/organizations.xml" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">/sitemaps/organizations.xml</a>
+        <a href="/sitemaps/landing.xml" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">/sitemaps/landing.xml</a>
+        <a href="/robots.txt" target="_blank" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-amber-300">/robots.txt</a>
+      </div>
+    </div>
+
+    <!-- Audit Issues Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Orphan Pages Table -->
+      <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100 flex items-center justify-between">
+          <span>Orphan Pages ({audit.orphanPages.length})</span>
+          <span class="text-[10px] text-slate-400 font-normal">Missing Category/Org relationship</span>
+        </h2>
+
+        {audit.orphanPages.length > 0 ? (
+          <div class="divide-y divide-slate-100 max-h-64 overflow-y-auto text-xs">
+            {audit.orphanPages.map((item) => (
+              <div class="py-2 flex items-center justify-between gap-2">
+                <span class="font-medium text-slate-800 truncate">{item.title}</span>
+                <a href={`/admin/content/${item.id}`} class="text-blue-600 hover:underline font-bold shrink-0">
+                  Fix &rarr;
+                </a>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-xs text-emerald-600 font-medium py-3">✓ Excellent! No orphan content detected in database.</p>
+        )}
+      </div>
+
+      <!-- Thin Programmatic Pages -->
+      <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+        <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3 pb-2 border-b border-slate-100 flex items-center justify-between">
+          <span>Thin Programmatic Pages ({audit.thinProgrammaticPages.length})</span>
+          <span class="text-[10px] text-slate-400 font-normal">Below minimum content threshold</span>
+        </h2>
+
+        {audit.thinProgrammaticPages.length > 0 ? (
+          <div class="divide-y divide-slate-100 max-h-64 overflow-y-auto text-xs">
+            {audit.thinProgrammaticPages.map((item) => (
+              <div class="py-2 flex items-center justify-between gap-2">
+                <div>
+                  <span class="font-bold text-slate-800 block">{item.title}</span>
+                  <span class="text-[11px] text-slate-400">Found {item.count} items (Threshold: {item.threshold}) &bull; <strong class="text-rose-600">noindex</strong></span>
+                </div>
+                <a href={`/jobs/${item.slug}`} target="_blank" class="text-blue-600 hover:underline font-bold shrink-0">
+                  Preview &rarr;
+                </a>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-xs text-emerald-600 font-medium py-3">✓ All programmatic landing pages meet quality thresholds!</p>
+        )}
+      </div>
+
+    </div>
+
+  </div>
+</AdminLayout>

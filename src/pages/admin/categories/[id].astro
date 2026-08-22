@@ -1,0 +1,161 @@
+---
+// src/pages/admin/categories/[id].astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db';
+import type { Category } from '../../../lib/types';
+
+const id = Astro.params.id;
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const category = await db.first<Category>('SELECT * FROM categories WHERE id = ?', [id]);
+
+if (!category) {
+  return Astro.redirect('/admin/categories');
+}
+---
+
+<AdminLayout title={`Edit Category: ${category.name}`} subtitle="Modify taxonomy parameters, sort order, and slug." activeNav="/admin/categories">
+  
+  <div class="max-w-2xl bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+    <div id="form-alert" class="hidden mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700"></div>
+
+    <form id="category-edit-form" class="space-y-5" data-id={category.id}>
+      <div>
+        <label for="name" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+          Category Name *
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          value={category.name}
+          required
+          class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <label for="slug" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+            URL Slug
+          </label>
+          <span class="text-[11px] text-slate-400 font-mono">Unique URL path</span>
+        </div>
+        <input
+          type="text"
+          id="slug"
+          name="slug"
+          value={category.slug}
+          required
+          class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm font-mono focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label for="description" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+          Description
+        </label>
+        <textarea
+          id="description"
+          name="description"
+          rows="3"
+          class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        >{category.description || ''}</textarea>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="sort_order" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Sort Order (Numeric)
+          </label>
+          <input
+            type="number"
+            id="sort_order"
+            name="sort_order"
+            value={category.sort_order}
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label for="status" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            Status
+          </label>
+          <select
+            id="status"
+            name="status"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="active" selected={category.status === 'active'}>Active (Visible)</option>
+            <option value="inactive" selected={category.status === 'inactive'}>Inactive (Hidden)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-200 flex items-center justify-end space-x-3">
+        <a
+          href="/admin/categories"
+          class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+        >
+          Cancel
+        </a>
+        <button
+          type="submit"
+          id="btn-save"
+          class="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-colors cursor-pointer"
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+
+</AdminLayout>
+
+<script>
+  const form = document.getElementById('category-edit-form') as HTMLFormElement;
+  const alertBox = document.getElementById('form-alert');
+  const btnSave = document.getElementById('btn-save') as HTMLButtonElement;
+  const catId = form?.getAttribute('data-id');
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (alertBox) alertBox.classList.add('hidden');
+    if (btnSave) btnSave.disabled = true;
+
+    const formData = new FormData(form);
+    const payload = {
+      name: formData.get('name'),
+      slug: formData.get('slug'),
+      description: formData.get('description'),
+      sort_order: Number(formData.get('sort_order')),
+      status: formData.get('status'),
+    };
+
+    try {
+      const res = await fetch(`/api/admin/categories/${catId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await res.json()) as any;
+      if (res.ok && data.success) {
+        window.location.href = '/admin/categories';
+      } else {
+        if (alertBox) {
+          alertBox.textContent = data.error || 'Failed to update category.';
+          alertBox.classList.remove('hidden');
+        }
+      }
+    } catch (err: any) {
+      if (alertBox) {
+        alertBox.textContent = 'Server communication error.';
+        alertBox.classList.remove('hidden');
+      }
+    } finally {
+      if (btnSave) btnSave.disabled = false;
+    }
+  });
+</script>

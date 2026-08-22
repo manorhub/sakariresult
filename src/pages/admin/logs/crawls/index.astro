@@ -1,0 +1,213 @@
+---
+// src/pages/admin/logs/crawls/index.astro
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../../lib/db';
+import type { CrawlLog, Source } from '../../../../lib/types';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const sourceFilter = Astro.url.searchParams.get('source_id') || '';
+const statusFilter = Astro.url.searchParams.get('status') || '';
+const errorsOnly = Astro.url.searchParams.get('errors') === 'true';
+
+let query = `
+  SELECT cl.*, s.name as source_name
+  FROM crawl_logs cl
+  LEFT JOIN sources s ON s.id = cl.source_id
+  WHERE 1=1
+`;
+const params: any[] = [];
+
+if (sourceFilter) {
+  query += ' AND cl.source_id = ?';
+  params.push(sourceFilter);
+}
+if (statusFilter) {
+  query += ' AND cl.status = ?';
+  params.push(statusFilter);
+}
+if (errorsOnly) {
+  query += ' AND (cl.errors > 0 OR cl.status = "failed" OR cl.status = "partial")';
+}
+
+query += ' ORDER BY cl.started_at DESC LIMIT 100';
+
+const logs = (await db.query<CrawlLog>(query, params)).results;
+const sources = (await db.query<Source>('SELECT id, name FROM sources ORDER BY name ASC')).results;
+---
+
+<AdminLayout title="Crawl Logs & History — Automation Monitoring">
+  <div class="space-y-6">
+    
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+      <div>
+        <h1 class="text-xl font-bold text-slate-900 tracking-tight">Crawl Execution History</h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Detailed audit logs of every automated Cloudflare Cron and manual crawler run.
+        </p>
+      </div>
+
+      <a
+        href="/admin/sources"
+        class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors flex items-center space-x-1.5"
+      >
+        <span>Manage Sources</span>
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <form method="GET" class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <!-- Source Filter -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Source</label>
+          <select name="source_id" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white">
+            <option value="">All Sources</option>
+            {sources.map(s => (
+              <option value={s.id} selected={sourceFilter === s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <!-- Status Filter -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Status</label>
+          <select name="status" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white">
+            <option value="">All Statuses</option>
+            <option value="completed" selected={statusFilter === 'completed'}>Completed</option>
+            <option value="partial" selected={statusFilter === 'partial'}>Partial</option>
+            <option value="failed" selected={statusFilter === 'failed'}>Failed</option>
+          </select>
+        </div>
+
+        <!-- Errors Only Toggle -->
+        <div class="flex items-end pb-2">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" name="errors" value="true" checked={errorsOnly} class="rounded border-slate-300 text-rose-600 focus:ring-rose-500 w-4 h-4" />
+            <span class="text-xs font-semibold text-slate-700">Errors Only</span>
+          </label>
+        </div>
+
+        <!-- Submit & Reset -->
+        <div class="flex items-end space-x-2">
+          <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors">
+            Apply Filters
+          </button>
+          <a href="/admin/logs/crawls" class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-lg text-center transition-colors">
+            Reset
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Crawl Logs Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      {logs.length === 0 ? (
+        <div class="p-12 text-center text-slate-500">
+          <svg class="w-10 h-10 mx-auto text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p class="text-sm font-semibold text-slate-700">No crawl logs recorded matching this filter</p>
+          <p class="text-xs text-slate-400 mt-1">Execute a manual crawl from Sources or wait for the Cloudflare Cron Trigger.</p>
+        </div>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                <th class="py-3 px-4">Timestamp</th>
+                <th class="py-3 px-4">Source</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Discovered</th>
+                <th class="py-3 px-4">Processed</th>
+                <th class="py-3 px-4">New / Updated / Same</th>
+                <th class="py-3 px-4">PDFs</th>
+                <th class="py-3 px-4">Errors</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+              {logs.map((log) => {
+                const startTime = new Date(log.started_at);
+                const durationMs = log.completed_at ? new Date(log.completed_at).getTime() - startTime.getTime() : null;
+
+                return (
+                  <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="py-3 px-4 whitespace-nowrap">
+                      <div class="font-bold text-slate-900">{startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+                      <div class="text-[10px] text-slate-400">{startTime.toLocaleDateString('en-IN')} {durationMs !== null ? `(${durationMs}ms)` : ''}</div>
+                    </td>
+
+                    <td class="py-3 px-4 font-bold text-slate-900">
+                      {log.source_name || 'Deleted / Unknown Source'}
+                    </td>
+
+                    <td class="py-3 px-4">
+                      {log.status === 'completed' && (
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                          Completed
+                        </span>
+                      )}
+                      {log.status === 'partial' && (
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                          Partial
+                        </span>
+                      )}
+                      {log.status === 'failed' && (
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">
+                          Failed
+                        </span>
+                      )}
+                      {log.status === 'running' && (
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 animate-pulse">
+                          Running
+                        </span>
+                      )}
+                    </td>
+
+                    <td class="py-3 px-4 font-bold text-slate-800">
+                      {log.urls_discovered}
+                    </td>
+
+                    <td class="py-3 px-4 text-slate-600">
+                      {log.urls_processed}
+                    </td>
+
+                    <td class="py-3 px-4">
+                      <div class="flex items-center space-x-1 font-mono text-[11px]">
+                        <span class="text-emerald-700 font-bold">+{log.new_items}</span>
+                        <span class="text-slate-300">/</span>
+                        <span class="text-blue-700 font-bold">~{log.updated_items}</span>
+                        <span class="text-slate-300">/</span>
+                        <span class="text-slate-500 font-bold">={log.unchanged_items}</span>
+                      </div>
+                    </td>
+
+                    <td class="py-3 px-4 font-mono font-bold text-purple-700">
+                      {log.documents_downloaded}
+                    </td>
+
+                    <td class="py-3 px-4">
+                      {log.errors > 0 || log.error_message ? (
+                        <span class="text-rose-600 font-bold" title={log.error_message || undefined}>
+                          {log.errors} err {log.error_message ? `(${log.error_message.slice(0, 30)}...)` : ''}
+                        </span>
+                      ) : (
+                        <span class="text-emerald-600 font-bold">0</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+
+  </div>
+</AdminLayout>

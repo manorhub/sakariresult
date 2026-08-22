@@ -1,0 +1,83 @@
+---
+// src/pages/verify-email.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import { getDb } from '../lib/db.ts';
+import { verifyUserEmail } from '../lib/user_auth.ts';
+
+const token = Astro.url.searchParams.get('token') || '';
+let verificationStatus: { success: boolean; message: string } = {
+  success: false,
+  message: 'Verifying your email address...',
+};
+
+if (token) {
+  const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+  if (d1) {
+    const db = getDb(d1);
+    const res = await verifyUserEmail(db, token);
+    if (res.success) {
+      verificationStatus = {
+        success: true,
+        message: 'Your email address has been successfully verified! You can now configure job alerts.',
+      };
+    } else {
+      verificationStatus = {
+        success: false,
+        message: res.error || 'Verification link is invalid or has expired.',
+      };
+    }
+  }
+} else {
+  verificationStatus = {
+    success: false,
+    message: 'No verification token was provided in the request.',
+  };
+}
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Verify Email' },
+];
+---
+
+<BaseLayout
+  title="Email Verification — Sarkari Info"
+  description="Verification of candidate email address on Sarkari Info."
+  noindex={true}
+>
+  <div class="max-w-md mx-auto px-4 py-12">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <div class="mt-6 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs text-center">
+      <div class={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl mx-auto mb-4 ${
+        verificationStatus.success ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'
+      }`}>
+        {verificationStatus.success ? '✓' : '✉️'}
+      </div>
+
+      <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mb-2">
+        {verificationStatus.success ? 'Email Verified Successfully!' : 'Verification Notice'}
+      </h1>
+
+      <p class="text-xs sm:text-sm text-slate-600 mb-6 leading-relaxed">
+        {verificationStatus.message}
+      </p>
+
+      <div class="space-y-2">
+        <a
+          href={verificationStatus.success ? '/account' : '/login'}
+          class="inline-block w-full bg-gov-navy hover:bg-slate-900 text-white font-bold py-3 rounded-xl transition-all shadow-xs text-xs"
+        >
+          {verificationStatus.success ? 'Go to My Account' : 'Sign In'}
+        </a>
+        <a
+          href="/"
+          class="inline-block text-xs font-semibold text-slate-500 hover:text-slate-900 py-1"
+        >
+          Return to Homepage
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

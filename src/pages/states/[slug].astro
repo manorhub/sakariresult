@@ -1,0 +1,125 @@
+---
+// src/pages/states/[slug].astro
+// State Recruitment Hub displaying published jobs, results, and exams for a specific Indian State
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import JobCard from '../../components/JobCard.astro';
+import ContentCard from '../../components/ContentCard.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import { getDb } from '../../lib/db.ts';
+import { getStateDetails, INDIAN_STATES } from '../../lib/public_queries.ts';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/states');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const details = await getStateDetails(db, slug);
+const stateObj = INDIAN_STATES.find(s => s.slug === slug);
+
+if (!stateObj) {
+  return Astro.redirect('/404');
+}
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'State Jobs', href: '/states' },
+  { label: stateObj.name },
+];
+---
+
+<BaseLayout
+  title={`${stateObj.name} Government Jobs 2026 — Latest State Recruitment, PSC & Police Vacancies`}
+  description={`Find active ${stateObj.name} government jobs, state PSC exams, Police SI/Constable recruitment, teacher vacancies, and results.`}
+  canonicalUrl={`${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/states/${stateObj.slug}`}
+>
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <!-- State Hero Header -->
+    <div class="my-6 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl">🏛️</span>
+          <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            {stateObj.name} Government Jobs & Recruitment 2026
+          </h1>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">
+          State Public Service Commission, District Administration, Police & Education Vacancies
+        </p>
+      </div>
+
+      <a
+        href={`/jobs?state=${encodeURIComponent(stateObj.name)}`}
+        class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-lg bg-gov-navy hover:bg-slate-900 text-white shadow-xs transition-colors shrink-0"
+      >
+        <span>Search All {stateObj.name} Jobs</span>
+      </a>
+    </div>
+
+    {details && details.items.length > 0 ? (
+      <div class="space-y-10">
+        
+        {details.jobs.length > 0 && (
+          <section>
+            <div class="flex items-center space-x-2 border-b-2 border-slate-200 pb-2.5 mb-4">
+              <div class="w-2.5 h-5 bg-gov-navy rounded-xs"></div>
+              <h2 class="text-base sm:text-lg font-black text-slate-900">
+                Latest {stateObj.name} Recruitment & Jobs ({details.jobs.length})
+              </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {details.jobs.map((job) => (
+                <JobCard job={job} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {details.results.length > 0 && (
+          <section>
+            <div class="flex items-center space-x-2 border-b-2 border-slate-200 pb-2.5 mb-4">
+              <div class="w-2.5 h-5 bg-emerald-600 rounded-xs"></div>
+              <h2 class="text-base sm:text-lg font-black text-slate-900">
+                {stateObj.name} Results & Merit Lists ({details.results.length})
+              </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {details.results.map((item) => (
+                <ContentCard item={item} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {details.admitCards.length > 0 && (
+          <section>
+            <div class="flex items-center space-x-2 border-b-2 border-slate-200 pb-2.5 mb-4">
+              <div class="w-2.5 h-5 bg-amber-600 rounded-xs"></div>
+              <h2 class="text-base sm:text-lg font-black text-slate-900">
+                {stateObj.name} Admit Cards ({details.admitCards.length})
+              </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {details.admitCards.map((item) => (
+                <ContentCard item={item} />
+              ))}
+            </div>
+          </section>
+        )}
+
+      </div>
+    ) : (
+      <EmptyState
+        title={`No Active Notices for ${stateObj.name}`}
+        message="State government vacancies and PSC results will appear here as soon as published."
+        actionUrl="/jobs"
+        actionLabel="Explore All India Jobs"
+      />
+    )}
+
+  </div>
+</BaseLayout>

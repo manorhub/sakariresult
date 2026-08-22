@@ -1,0 +1,57 @@
+---
+// src/pages/editorial-policy.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+const breadcrumbs = [
+  { label: 'Home', href: '/' },
+  { label: 'Editorial Policy & Standards' },
+];
+---
+
+<BaseLayout
+  title="Editorial Policy & Fact-Checking Standards — Sarkari Info"
+  description="Our editorial process, primary source verification methodology, and standards for government recruitment information dissemination."
+>
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <Breadcrumbs items={breadcrumbs} />
+
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-6">
+      <header class="border-b border-slate-200 pb-4">
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          Editorial Policy & Integrity Guidelines
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Last Updated: January 2026 &bull; Strict Source-of-Truth Commitment
+        </p>
+      </header>
+
+      <div class="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
+        <h2 class="text-base font-bold text-slate-900 pt-2">1. Primary Source Requirement</h2>
+        <p>
+          At Sarkari Info, factual accuracy is non-negotiable. Every job alert, exam schedule, result announcement, and answer key is published strictly based on official public documents released by authorized central and state government bodies (e.g., Union Gazette, UPSC, SSC, RRB, NTA, High Courts, and State PSCs).
+        </p>
+
+        <h2 class="text-base font-bold text-slate-900 pt-2">2. Strict Verification Before Publication</h2>
+        <p>
+          We employ a multi-step fact-checking verification protocol:
+        </p>
+        <ul class="list-disc pl-5 space-y-1">
+          <li><strong>Numbers & Vacancies:</strong> Vacancy counts, fee structures, and age limits are cross-referenced directly against raw official notifications.</li>
+          <li><strong>Dates & Deadlines:</strong> Application start dates, last dates, fee deadlines, and exam shifts are verified to prevent hallucination or guessing.</li>
+          <li><strong>Link Authentication:</strong> All external links must resolve to authorized government domains (such as <code class="bg-slate-100 px-1 py-0.5 rounded text-[11px]">.gov.in</code>, <code class="bg-slate-100 px-1 py-0.5 rounded text-[11px]">.nic.in</code>, or verified statutory portals). URL shorteners and unverified domains are strictly banned.</li>
+        </ul>
+
+        <h2 class="text-base font-bold text-slate-900 pt-2">3. Independence & Impartiality</h2>
+        <p>
+          Sarkari Info is an independent informational resource. We do not accept sponsorships or fees to promote private recruitment courses or alter official government job postings. We do not provide examination coaching or claim guaranteed selection.
+        </p>
+
+        <h2 class="text-base font-bold text-slate-900 pt-2">4. Originality & Copyright Safety</h2>
+        <p>
+          While extracted facts (dates, fees, eligibility criteria) are public domain records, all descriptive summaries, step-by-step application guides, and analytical articles are drafted originally by our editorial team adhering to fair-use and copyright integrity principles.
+        </p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

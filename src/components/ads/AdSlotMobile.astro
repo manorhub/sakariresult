@@ -1,0 +1,35 @@
+---
+// src/components/ads/AdSlotMobile.astro
+// Mobile-Specific Sticky/Banner Placement
+
+import { getDb } from '../../lib/db.ts';
+import { evaluateAdDisplay } from '../../lib/monetization/ads.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const isDev = import.meta.env.DEV;
+let adState = { showAd: false, isDev: false, provider: 'none', publisherId: '', slotType: 'mobile' };
+
+if (d1) {
+  const db = getDb(d1);
+  adState = await evaluateAdDisplay(db, 'mobile', isDev);
+} else if (isDev) {
+  adState = { showAd: true, isDev: true, provider: 'mock', publisherId: 'dev-mode', slotType: 'mobile' };
+}
+---
+
+{adState.showAd && (
+  <div class="block sm:hidden w-full my-3 p-2 bg-slate-50 border border-slate-200 rounded-lg text-center" aria-label="Mobile Advertisement">
+    <span class="text-[8px] font-extrabold uppercase tracking-widest text-slate-400 block mb-0.5">
+      ADVERTISEMENT
+    </span>
+    {adState.isDev ? (
+      <div class="w-full h-14 bg-slate-200 border border-dashed border-slate-300 rounded flex items-center justify-center text-[10px] font-semibold text-slate-500">
+        Mobile Banner (320x50 / 300x50)
+      </div>
+    ) : (
+      <div class="ad-slot-container min-h-[50px] w-full" data-ad-slot="mobile" data-publisher={adState.publisherId}>
+        <!-- Provider Script Integration Container -->
+      </div>
+    )}
+  </div>
+)}

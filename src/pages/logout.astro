@@ -1,0 +1,17 @@
+---
+// src/pages/logout.astro
+import { getDb } from '../lib/db.ts';
+import { deleteUserSession } from '../lib/user_auth.ts';
+
+const sessionToken = Astro.cookies.get('user_session')?.value;
+if (sessionToken) {
+  const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+  if (d1) {
+    const db = getDb(d1);
+    await deleteUserSession(db, sessionToken).catch(() => {});
+  }
+}
+
+Astro.cookies.delete('user_session', { path: '/' });
+return Astro.redirect('/');
+---

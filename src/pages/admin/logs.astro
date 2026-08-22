@@ -1,0 +1,97 @@
+---
+// src/pages/admin/logs.astro
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getDb } from '../../lib/db';
+import { formatDate } from '../../lib/utils';
+import type { AdminUser, Source } from '../../lib/types';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const admins = (await db.query<AdminUser>('SELECT id, email, name, role, status, last_login_at, created_at FROM admins')).results;
+const sources = (await db.query<Source>('SELECT id, name, last_checked_at, last_success_at, last_error FROM sources')).results;
+---
+
+<AdminLayout title="System Logs & Audit Trail" subtitle="Activity events, security authentications, and source check statuses." activeNav="/admin/logs">
+  
+  <div class="space-y-8">
+    
+    <!-- Admin Authentication Logs -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-5 border-b border-slate-200">
+        <h2 class="text-base font-bold text-slate-900">Admin Account Logins & Status</h2>
+        <p class="text-xs text-slate-500">Security audit for portal management access</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <tr>
+              <th class="px-6 py-3.5">Administrator</th>
+              <th class="px-6 py-3.5">Email</th>
+              <th class="px-6 py-3.5">Role</th>
+              <th class="px-6 py-3.5">Status</th>
+              <th class="px-6 py-3.5">Last Login Time</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {admins.map((adm) => (
+              <tr class="hover:bg-slate-50">
+                <td class="px-6 py-4 font-bold text-slate-900">{adm.name}</td>
+                <td class="px-6 py-4 font-mono text-slate-600">{adm.email}</td>
+                <td class="px-6 py-4 uppercase font-bold text-[10px] text-blue-600">{adm.role}</td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                    {adm.status}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-slate-500">{formatDate(adm.last_login_at, true)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Source Activity & Errors -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-5 border-b border-slate-200">
+        <h2 class="text-base font-bold text-slate-900">Source Health & Crawl State</h2>
+        <p class="text-xs text-slate-500">Execution logs and error history (Phase 1 diagnostic view)</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+            <tr>
+              <th class="px-6 py-3.5">Source Name</th>
+              <th class="px-6 py-3.5">Last Checked</th>
+              <th class="px-6 py-3.5">Last Success</th>
+              <th class="px-6 py-3.5">Last Error</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {sources.length === 0 ? (
+              <tr>
+                <td colspan="4" class="px-6 py-8 text-center text-slate-400">
+                  No source health records found.
+                </td>
+              </tr>
+            ) : (
+              sources.map((src) => (
+                <tr class="hover:bg-slate-50">
+                  <td class="px-6 py-4 font-bold text-slate-900">{src.name}</td>
+                  <td class="px-6 py-4 text-slate-500">{formatDate(src.last_checked_at, true)}</td>
+                  <td class="px-6 py-4 text-slate-500">{formatDate(src.last_success_at, true)}</td>
+                  <td class="px-6 py-4 font-mono text-[11px] text-rose-600">{src.last_error || 'None (Healthy)'}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</AdminLayout>

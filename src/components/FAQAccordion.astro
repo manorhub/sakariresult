@@ -1,0 +1,43 @@
+---
+// src/components/FAQAccordion.astro
+import type { FAQItem } from '../lib/ai/types.ts';
+
+interface Props {
+  faqs: FAQItem[];
+  title?: string;
+}
+
+const { faqs, title = 'Frequently Asked Questions (FAQs)' } = Astro.props;
+
+if (!faqs || faqs.length === 0) return null;
+---
+
+<div class="my-8 bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-xs">
+  <div class="flex items-center space-x-2 border-b border-slate-100 pb-3 mb-4">
+    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+    <h2 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+      {title}
+    </h2>
+  </div>
+
+  <div class="space-y-3">
+    {faqs.map((faq, idx) => (
+      <details class="group rounded-lg border border-slate-200 bg-slate-50/50 open:bg-white open:border-slate-300 transition-colors" open={idx === 0}>
+        <summary class="p-3.5 sm:p-4 text-xs sm:text-sm font-bold text-slate-900 cursor-pointer select-none flex items-center justify-between gap-3">
+          <span>Q: {faq.question}</span>
+          <span class="text-slate-400 group-open:rotate-180 transition-transform shrink-0 font-mono text-xs">
+            &darr;
+          </span>
+        </summary>
+        <div class="px-3.5 pb-4 pt-1 sm:px-4 sm:pb-4 text-xs sm:text-sm text-slate-700 leading-relaxed border-t border-slate-100 font-sans">
+          <p>{faq.answer}</p>
+          {faq.verifiedFromField && (
+            <span class="inline-block mt-2 text-[10px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded">
+              Verified Source Field: {faq.verifiedFromField}
+            </span>
+          )}
+        </div>
+      </details>
+    ))}
+  </div>
+</div>

@@ -1,0 +1,54 @@
+---
+// src/pages/about.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+---
+
+<BaseLayout
+  title="About Us — Sarkari Info Official Mission & Values"
+  description="Learn about Sarkari Info, our mission to deliver fast, verified, and accessible government recruitment alerts to millions of Indian aspirants."
+>
+  <Breadcrumbs items={[{ name: 'About Us' }]} />
+
+  <div class="max-w-4xl mx-auto px-4 py-10">
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-10 shadow-sm space-y-6">
+      
+      <div class="border-b border-slate-100 pb-4">
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          About Sarkari Info
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Dedicated to simplifying government career information for Indian aspirants.
+        </p>
+      </div>
+
+      <div class="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
+        <p>
+          <strong>Sarkari Info</strong> is an independent digital news and information repository created with a single objective: to provide free, accurate, lightning-fast, and verified recruitment notifications for central and state government jobs across India.
+        </p>
+        <p>
+          Every year, millions of students and job seekers prepare for prestigious exams such as UPSC Civil Services, SSC CGL/CHSL, IBPS Banking, Railway Recruitment Boards (RRB), State Public Service Commissions (PSCs), Teaching Eligibility Tests (TET), and Defence recruitment. However, navigating numerous decentralized official websites can be tedious and prone to misinformation.
+        </p>
+        <p>
+          Our platform streamlines this process by monitoring official gazettes, press releases, and authorized recruitment portals to present comprehensive eligibility summaries, deadlines, answer keys, scorecards, and direct official PDF notices in a clear, mobile-friendly interface.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+          <span class="block text-xl font-bold text-blue-600 mb-1">100% Free</span>
+          <span class="text-xs text-slate-600">Open access for all students with no paywalls.</span>
+        </div>
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+          <span class="block text-xl font-bold text-emerald-600 mb-1">Direct Links</span>
+          <span class="text-xs text-slate-600">Official apply links & authentic PDF circulars.</span>
+        </div>
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
+          <span class="block text-xl font-bold text-amber-600 mb-1">Fast & Lightweight</span>
+          <span class="text-xs text-slate-600">Edge-native performance on 2G/3G/4G/5G networks.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</BaseLayout>

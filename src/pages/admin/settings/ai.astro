@@ -1,0 +1,406 @@
+---
+// src/pages/admin/settings/ai.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const apiKey = (Astro.locals as any)?.runtime?.env?.DEEPSEEK_API_KEY || (typeof process !== 'undefined' ? process.env?.DEEPSEEK_API_KEY : '');
+const db = getDb(d1);
+
+// Fetch existing AI settings
+const settingsRows = (await db.query<{ key: string; value: string }>('SELECT key, value FROM settings WHERE key LIKE "ai_%"')).results;
+const settingsMap: Record<string, string> = {};
+for (const r of settingsRows) {
+  settingsMap[r.key] = r.value;
+}
+
+const aiEnabled = settingsMap.ai_enabled !== 'false';
+const aiModel = settingsMap.ai_model || 'deepseek-chat';
+const aiTemperature = settingsMap.ai_temperature || '0.2';
+const aiMaxTokens = settingsMap.ai_max_tokens || '4096';
+const aiTimeoutMs = settingsMap.ai_timeout_ms || '30000';
+const aiRetryCount = settingsMap.ai_retry_count || '2';
+const aiDailyLimit = settingsMap.ai_daily_limit || '500';
+const aiMonthlyLimit = settingsMap.ai_monthly_limit || '15000';
+const aiAutoPublishThreshold = settingsMap.ai_auto_publish_threshold || '90';
+const aiMinReviewThreshold = settingsMap.ai_min_review_threshold || '75';
+const isApiKeyConfigured = !!apiKey && apiKey.length > 5;
+---
+
+<AdminLayout title="AI Engine Settings" subtitle="Configure DeepSeek model parameters, safeguards, rate limits, and verification rules." activeNav="/admin/settings/ai">
+  
+  <div class="max-w-5xl space-y-6">
+
+    <!-- Top Status Banner -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">DeepSeek Primary AI Pipeline</h2>
+          <p class="text-xs text-slate-500">Autonomous classification, fact extraction, verification, and SEO engine.</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <span class={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+          isApiKeyConfigured 
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+            : 'bg-amber-50 text-amber-700 border border-amber-200'
+        }`}>
+          <span class={`w-2 h-2 rounded-full mr-1.5 ${isApiKeyConfigured ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+          {isApiKeyConfigured ? 'DeepSeek Key Configured' : 'Running in Dev / Mock Mode'}
+        </span>
+        <a
+          href="/admin/settings/prompts"
+          class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors"
+        >
+          Prompt Manager &rarr;
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Settings Form -->
+    <form id="ai-settings-form" class="space-y-6">
+      
+      <!-- General & Model Parameters -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
+        <h3 class="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100">
+          Model & Execution Configuration
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- AI Pipeline Enable Toggle -->
+          <div class="md:col-span-2 flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div>
+              <label for="ai_enabled" class="text-xs font-bold text-slate-900 cursor-pointer">Enable DeepSeek AI Processing</label>
+              <p class="text-[11px] text-slate-500">When enabled, newly discovered crawler sources will be processed through the 12-step AI pipeline.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="ai_enabled" name="ai_enabled" value="true" checked={aiEnabled} class="sr-only peer" />
+              <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+
+          <!-- Model Choice -->
+          <div>
+            <label for="ai_model" class="block text-xs font-bold text-slate-700 mb-1">DeepSeek Model</label>
+            <select
+              id="ai_model"
+              name="ai_model"
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+            >
+              <option value="deepseek-chat" selected={aiModel === 'deepseek-chat'}>deepseek-chat (Fast & Accurate JSON Extraction)</option>
+              <option value="deepseek-reasoner" selected={aiModel === 'deepseek-reasoner'}>deepseek-reasoner (Deep Reasoning & Complex Verifications)</option>
+            </select>
+            <span class="text-[10px] text-slate-400 mt-1 block">Default: deepseek-chat for low-latency factual extractions.</span>
+          </div>
+
+          <!-- Temperature -->
+          <div>
+            <label for="ai_temperature" class="block text-xs font-bold text-slate-700 mb-1">Temperature (Deterministic Level)</label>
+            <input
+              type="number"
+              step="0.05"
+              min="0.0"
+              max="1.0"
+              id="ai_temperature"
+              name="ai_temperature"
+              value={aiTemperature}
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <span class="text-[10px] text-slate-400 mt-1 block">Recommended: 0.1 – 0.2 for strict factual JSON without hallucinations.</span>
+          </div>
+
+          <!-- Max Output Tokens -->
+          <div>
+            <label for="ai_max_tokens" class="block text-xs font-bold text-slate-700 mb-1">Maximum Output Tokens</label>
+            <input
+              type="number"
+              step="256"
+              min="512"
+              max="8192"
+              id="ai_max_tokens"
+              name="ai_max_tokens"
+              value={aiMaxTokens}
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <span class="text-[10px] text-slate-400 mt-1 block">Upper token limit per completion call (Default: 4096).</span>
+          </div>
+
+          <!-- Request Timeout -->
+          <div>
+            <label for="ai_timeout_ms" class="block text-xs font-bold text-slate-700 mb-1">Request Timeout (Milliseconds)</label>
+            <input
+              type="number"
+              step="5000"
+              min="5000"
+              max="60000"
+              id="ai_timeout_ms"
+              name="ai_timeout_ms"
+              value={aiTimeoutMs}
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <span class="text-[10px] text-slate-400 mt-1 block">Abort request if no response within this duration (Default: 30000ms).</span>
+          </div>
+
+          <!-- Retry Count -->
+          <div>
+            <label for="ai_retry_count" class="block text-xs font-bold text-slate-700 mb-1">Max Retry Count</label>
+            <input
+              type="number"
+              min="0"
+              max="5"
+              id="ai_retry_count"
+              name="ai_retry_count"
+              value={aiRetryCount}
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <span class="text-[10px] text-slate-400 mt-1 block">Automatic retries with exponential backoff on transient network failures.</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Cost Control & Rate Limits -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
+        <h3 class="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100">
+          Usage Limits & Cost Safeguards
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="ai_daily_limit" class="block text-xs font-bold text-slate-700 mb-1">Daily Request Limit</label>
+            <input
+              type="number"
+              min="10"
+              max="5000"
+              id="ai_daily_limit"
+              name="ai_daily_limit"
+              value={aiDailyLimit}
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <span class="text-[10px] text-slate-400 mt-1 block">Maximum AI generation requests permitted per calendar day.</span>
+          </div>
+
+          <div>
+            <label for="ai_monthly_limit" class="block text-xs font-bold text-slate-700 mb-1">Monthly Request Limit</label>
+            <input
+              type="number"
+              min="100"
+              max="100000"
+              id="ai_monthly_limit"
+              name="ai_monthly_limit"
+              value={aiMonthlyLimit}
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <span class="text-[10px] text-slate-400 mt-1 block">Maximum AI requests per calendar month.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quality Score & Auto-Publish Thresholds -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
+        <h3 class="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100">
+          Deterministic Quality & Auto-Publish Thresholds
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="ai_auto_publish_threshold" class="block text-xs font-bold text-slate-700 mb-1">
+              Auto-Publish Score Threshold (Points / 100)
+            </label>
+            <input
+              type="number"
+              min="80"
+              max="100"
+              id="ai_auto_publish_threshold"
+              name="ai_auto_publish_threshold"
+              value={aiAutoPublishThreshold}
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <span class="text-[10px] text-slate-400 mt-1 block">Score required for auto-publishing (Default: 90). Critical conflicts always block auto-publish.</span>
+          </div>
+
+          <div>
+            <label for="ai_min_review_threshold" class="block text-xs font-bold text-slate-700 mb-1">
+              Minimum Review Threshold (Points / 100)
+            </label>
+            <input
+              type="number"
+              min="50"
+              max="89"
+              id="ai_min_review_threshold"
+              name="ai_min_review_threshold"
+              value={aiMinReviewThreshold}
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <span class="text-[10px] text-slate-400 mt-1 block">Items scoring between this and Auto-Publish threshold will be queued in Review Queue (Default: 75).</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="flex items-center justify-end space-x-3">
+        <button
+          type="submit"
+          id="btn-save-settings"
+          class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+        >
+          Save AI Configuration
+        </button>
+      </div>
+
+    </form>
+
+    <!-- API Key & Secrets Security Guidance Card -->
+    <div class="bg-slate-900 text-slate-200 rounded-xl border border-slate-800 p-6 shadow-sm">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+        <div class="flex items-center space-x-2">
+          <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <h3 class="text-sm font-bold text-white">Cloudflare Server-Side Secret Management</h3>
+        </div>
+        <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">Zero Client Exposure</span>
+      </div>
+
+      <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+        For maximum security, the DeepSeek API Key is never stored in normal database fields or exposed to client-side browsers. 
+        It is configured directly as a secure encrypted secret in Cloudflare Workers.
+      </p>
+
+      <div class="bg-slate-950 p-4 rounded-lg font-mono text-xs text-slate-300 space-y-2 border border-slate-800">
+        <p class="text-slate-500 font-sans text-[11px] font-bold uppercase">To configure your production secret via Wrangler:</p>
+        <div class="text-emerald-400 select-all font-bold">npx wrangler secret put DEEPSEEK_API_KEY</div>
+        <p class="text-slate-500 font-sans text-[11px] mt-2">For local development, add to your <code class="text-amber-300">.env</code> or <code class="text-amber-300">.dev.vars</code> file:</p>
+        <div class="text-blue-400 select-all">DEEPSEEK_API_KEY="sk-..."</div>
+      </div>
+    </div>
+
+    <!-- Live AI Connectivity & Output Tester -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
+      <h3 class="text-sm font-bold text-slate-900 mb-2">Live AI Connectivity & Extraction Tester</h3>
+      <p class="text-xs text-slate-500 mb-4">Test classification and factual extraction against raw notification text in real time.</p>
+
+      <div class="space-y-4">
+        <div>
+          <label for="sample_text" class="block text-xs font-bold text-slate-700 mb-1">Sample Official Source Text</label>
+          <textarea
+            id="sample_text"
+            rows="4"
+            class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono"
+            placeholder="Paste official notification snippet or job announcement text here..."
+          >Staff Selection Commission (SSC) announces 17,727 vacancies for Combined Graduate Level Examination (CGL) 2026. Online applications open on 24 June 2026 and close on 24 July 2026. Tier-1 Exam scheduled for September 2026. Apply on https://ssc.gov.in.</textarea>
+        </div>
+
+        <button
+          type="button"
+          id="btn-test-ai"
+          class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors flex items-center space-x-2"
+        >
+          <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Run Test Extraction</span>
+        </button>
+
+        <div id="test-results-container" class="hidden mt-4 p-4 bg-slate-900 rounded-xl text-slate-200 text-xs font-mono border border-slate-800 overflow-x-auto max-h-96">
+          <pre id="test-results-output"></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</AdminLayout>
+
+<script>
+  // Save Settings Handler
+  const form = document.getElementById('ai-settings-form') as HTMLFormElement;
+  const saveBtn = document.getElementById('btn-save-settings') as HTMLButtonElement;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    saveBtn.innerText = 'Saving...';
+
+    const formData = new FormData(form);
+    const payload = {
+      ai_enabled: formData.get('ai_enabled') === 'true',
+      ai_model: formData.get('ai_model'),
+      ai_temperature: parseFloat(formData.get('ai_temperature') as string),
+      ai_max_tokens: parseInt(formData.get('ai_max_tokens') as string, 10),
+      ai_timeout_ms: parseInt(formData.get('ai_timeout_ms') as string, 10),
+      ai_retry_count: parseInt(formData.get('ai_retry_count') as string, 10),
+      ai_daily_limit: parseInt(formData.get('ai_daily_limit') as string, 10),
+      ai_monthly_limit: parseInt(formData.get('ai_monthly_limit') as string, 10),
+      ai_auto_publish_threshold: parseInt(formData.get('ai_auto_publish_threshold') as string, 10),
+      ai_min_review_threshold: parseInt(formData.get('ai_min_review_threshold') as string, 10),
+    };
+
+    try {
+      const res = await fetch('/api/admin/ai/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json()) as any;
+      if (res.ok && data.success) {
+        alert('AI Configuration updated successfully!');
+      } else {
+        alert(data.error || 'Failed to save configuration');
+      }
+    } catch (err) {
+      alert('Network error while saving settings.');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.innerText = 'Save AI Configuration';
+    }
+  });
+
+  // Test AI Connection Handler
+  const testBtn = document.getElementById('btn-test-ai') as HTMLButtonElement;
+  const sampleInput = document.getElementById('sample_text') as HTMLTextAreaElement;
+  const resultsContainer = document.getElementById('test-results-container') as HTMLDivElement;
+  const resultsOutput = document.getElementById('test-results-output') as HTMLElement;
+
+  testBtn?.addEventListener('click', async () => {
+    const text = sampleInput.value.trim();
+    if (!text) {
+      alert('Please enter sample notification text to test.');
+      return;
+    }
+
+    testBtn.disabled = true;
+    testBtn.innerText = 'Processing with DeepSeek...';
+    resultsContainer.classList.remove('hidden');
+    resultsOutput.innerText = '// Running AI classification and extraction pipeline...\n';
+
+    try {
+      const res = await fetch('/api/admin/ai/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sample_text: text }),
+      });
+      const data = (await res.json()) as any;
+      resultsOutput.innerText = JSON.stringify(data, null, 2);
+    } catch (err: any) {
+      resultsOutput.innerText = `// Test Error:\n${err?.message || 'Failed to execute test'}`;
+    } finally {
+      testBtn.disabled = false;
+      testBtn.innerHTML = `
+        <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Run Test Extraction</span>
+      `;
+    }
+  });
+</script>

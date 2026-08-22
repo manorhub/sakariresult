@@ -1,0 +1,76 @@
+---
+// src/components/Breadcrumbs.astro
+export interface BreadcrumbItem {
+  name?: string;
+  label?: string;
+  href?: string;
+}
+
+interface Props {
+  items: BreadcrumbItem[];
+}
+
+const { items = [] } = Astro.props;
+const siteUrl = Astro.site?.toString() || Astro.url.origin;
+
+// Normalize items to ensure 'name' is defined
+const normalizedItems = items
+  .filter(i => (i.label || i.name) && (i.label || i.name) !== 'Home')
+  .map(i => ({
+    name: i.label || i.name || '',
+    href: i.href,
+  }));
+
+// Build Schema.org BreadcrumbList
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  'itemListElement': [
+    {
+      '@type': 'ListItem',
+      'position': 1,
+      'name': 'Home',
+      'item': siteUrl,
+    },
+    ...normalizedItems.map((item, index) => ({
+      '@type': 'ListItem',
+      'position': index + 2,
+      'name': item.name,
+      ...(item.href ? { 'item': new URL(item.href, siteUrl).toString() } : {})
+    }))
+  ]
+};
+---
+
+<nav aria-label="Breadcrumbs" class="py-2.5 px-3 bg-slate-100/90 rounded-lg text-xs border border-slate-200/80 mb-4 overflow-x-auto whitespace-nowrap select-none">
+  <ol class="flex items-center space-x-1.5 text-slate-600">
+    <li class="flex items-center">
+      <a href="/" class="hover:text-gov-navy font-semibold flex items-center transition-colors">
+        <svg class="w-3.5 h-3.5 mr-1 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+        <span>Home</span>
+      </a>
+    </li>
+
+    {normalizedItems.map((item, idx) => {
+      const isLast = idx === normalizedItems.length - 1;
+      return (
+        <li class="flex items-center space-x-1.5">
+          <span class="text-slate-400">&rsaquo;</span>
+          {item.href && !isLast ? (
+            <a href={item.href} class="hover:text-gov-navy transition-colors font-medium text-slate-700">
+              {item.name}
+            </a>
+          ) : (
+            <span class="text-slate-900 font-bold truncate max-w-xs sm:max-w-md" aria-current="page">
+              {item.name}
+            </span>
+          )}
+        </li>
+      );
+    })}
+  </ol>
+</nav>
+
+<script is:inline type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />

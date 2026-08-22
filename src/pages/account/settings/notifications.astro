@@ -1,0 +1,177 @@
+---
+// src/pages/account/settings/notifications.astro
+// User Alert Preferences Settings Page
+
+import AccountLayout from '../../../layouts/AccountLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import type { UserSession, NotificationPreferences } from '../../../lib/user_auth.ts';
+
+const session = (Astro.locals as any).userSession as UserSession | null;
+if (!session) return Astro.redirect('/login');
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+let pref = await db.first<NotificationPreferences>('SELECT * FROM notification_preferences WHERE user_id = ?', [session.userId]);
+if (!pref) {
+  pref = {
+    id: 'default',
+    user_id: session.userId,
+    email_enabled: 1,
+    job_alerts: 1,
+    result_alerts: 1,
+    admit_card_alerts: 1,
+    answer_key_alerts: 1,
+    daily_digest: 0,
+    weekly_digest: 0,
+    deadline_reminders: 1,
+    created_at: '',
+    updated_at: '',
+  };
+}
+---
+
+<AccountLayout title="Alert Preferences" activeNav="/account/settings/notifications">
+  <div class="max-w-2xl space-y-6">
+    
+    <div class="pb-3 border-b border-slate-200">
+      <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Notification & Alert Preferences</h1>
+      <p class="text-xs text-slate-500 mt-1">Configure which email alerts and digest summaries you wish to receive.</p>
+    </div>
+
+    <form id="preferences-form" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6 text-xs">
+      
+      <!-- Master Email Switch -->
+      <div class="flex items-center justify-between pb-5 border-b border-slate-100">
+        <div>
+          <span class="text-sm font-bold text-slate-900 block">Master Email Notifications</span>
+          <p class="text-slate-500 text-[11px]">Enable or disable all transactional email deliveries to {session.email}</p>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" name="email_enabled" checked={pref.email_enabled === 1} class="sr-only peer" />
+          <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gov-navy"></div>
+        </label>
+      </div>
+
+      <!-- Specific Alert Toggles -->
+      <div class="space-y-4">
+        <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Instant Event Alerts</h2>
+
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="font-bold text-slate-800 block">New Job Openings</span>
+            <span class="text-slate-400 text-[11px]">When followed boards release new vacancy notifications</span>
+          </div>
+          <input type="checkbox" name="job_alerts" checked={pref.job_alerts === 1} class="rounded border-slate-300 text-gov-navy focus:ring-0 w-4 h-4" />
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="font-bold text-slate-800 block">Exam Results & Merit Lists</span>
+            <span class="text-slate-400 text-[11px]">Instant alert when results or scorecards are declared</span>
+          </div>
+          <input type="checkbox" name="result_alerts" checked={pref.result_alerts === 1} class="rounded border-slate-300 text-gov-navy focus:ring-0 w-4 h-4" />
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="font-bold text-slate-800 block">Admit Cards & Hall Tickets</span>
+            <span class="text-slate-400 text-[11px]">When call letters and exam city slips go live</span>
+          </div>
+          <input type="checkbox" name="admit_card_alerts" checked={pref.admit_card_alerts === 1} class="rounded border-slate-300 text-gov-navy focus:ring-0 w-4 h-4" />
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="font-bold text-slate-800 block">Answer Keys & Objection Portals</span>
+            <span class="text-slate-400 text-[11px]">When official question paper keys and objection forms release</span>
+          </div>
+          <input type="checkbox" name="answer_key_alerts" checked={pref.answer_key_alerts === 1} class="rounded border-slate-300 text-gov-navy focus:ring-0 w-4 h-4" />
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="font-bold text-slate-800 block">Application Deadline Reminders</span>
+            <span class="text-slate-400 text-[11px]">Receive reminders at 7, 3, and 1 day before closing date</span>
+          </div>
+          <input type="checkbox" name="deadline_reminders" checked={pref.deadline_reminders === 1} class="rounded border-slate-300 text-gov-navy focus:ring-0 w-4 h-4" />
+        </div>
+      </div>
+
+      <!-- Digest Toggles -->
+      <div class="space-y-4 pt-5 border-t border-slate-100">
+        <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Digest Newsletters</h2>
+
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="font-bold text-slate-800 block">Daily Digest Summary</span>
+            <span class="text-slate-400 text-[11px]">A single evening summary of all new notices in followed categories</span>
+          </div>
+          <input type="checkbox" name="daily_digest" checked={pref.daily_digest === 1} class="rounded border-slate-300 text-gov-navy focus:ring-0 w-4 h-4" />
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="font-bold text-slate-800 block">Weekly Digest & Exam Calendar</span>
+            <span class="text-slate-400 text-[11px]">Weekly roundup of top government jobs and upcoming deadlines</span>
+          </div>
+          <input type="checkbox" name="weekly_digest" checked={pref.weekly_digest === 1} class="rounded border-slate-300 text-gov-navy focus:ring-0 w-4 h-4" />
+        </div>
+      </div>
+
+      <div class="pt-5 border-t border-slate-100 flex items-center justify-between">
+        <span id="pref-status" class="text-xs font-semibold text-emerald-600 hidden">Preferences saved!</span>
+        <button
+          type="submit"
+          id="save-pref-btn"
+          class="ml-auto px-6 py-2.5 bg-gov-navy hover:bg-slate-900 text-white font-bold rounded-xl shadow-xs transition-colors text-xs"
+        >
+          Save Preferences
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</AccountLayout>
+
+<script>
+  const form = document.getElementById('preferences-form') as HTMLFormElement | null;
+  const statusEl = document.getElementById('pref-status');
+  const btn = document.getElementById('save-pref-btn') as HTMLButtonElement | null;
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (btn) btn.disabled = true;
+
+      const formData = new FormData(form);
+      const payload = {
+        email_enabled: formData.get('email_enabled') === 'on',
+        job_alerts: formData.get('job_alerts') === 'on',
+        result_alerts: formData.get('result_alerts') === 'on',
+        admit_card_alerts: formData.get('admit_card_alerts') === 'on',
+        answer_key_alerts: formData.get('answer_key_alerts') === 'on',
+        deadline_reminders: formData.get('deadline_reminders') === 'on',
+        daily_digest: formData.get('daily_digest') === 'on',
+        weekly_digest: formData.get('weekly_digest') === 'on',
+      };
+
+      try {
+        const res = await fetch('/api/user/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = (await res.json()) as any;
+
+        if (data.success && statusEl) {
+          statusEl.classList.remove('hidden');
+          setTimeout(() => statusEl.classList.add('hidden'), 3000);
+        }
+      } catch {} finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+  }
+</script>

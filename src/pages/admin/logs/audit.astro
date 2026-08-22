@@ -1,0 +1,75 @@
+---
+// src/pages/admin/logs/audit.astro
+// Admin Audit Trail Viewer
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import type { AuditLogRecord } from '../../../lib/logging/audit_logger.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const logs = (await db.query<AuditLogRecord>(`
+  SELECT * FROM admin_audit_logs
+  ORDER BY created_at DESC
+  LIMIT 100
+`)).results;
+---
+
+<AdminLayout title="Admin Audit Logs">
+  <div class="space-y-6">
+    
+    <div class="pb-3 border-b border-slate-200">
+      <h1 class="text-2xl font-black text-slate-900 tracking-tight">Admin Operation Audit Trail</h1>
+      <p class="text-xs text-slate-500 mt-1">Immutable security log of administrative actions, settings changes, and publishing events.</p>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Audit Trail ({logs.length})</h2>
+      </div>
+
+      {logs.length > 0 ? (
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-bold">
+                <th class="py-3 px-4">Admin ID</th>
+                <th class="py-3 px-4">Action</th>
+                <th class="py-3 px-4">Resource</th>
+                <th class="py-3 px-4">Resource ID</th>
+                <th class="py-3 px-4">Metadata</th>
+                <th class="py-3 px-4">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              {logs.map((l) => (
+                <tr class="hover:bg-slate-50">
+                  <td class="py-3 px-4 font-mono font-bold text-slate-800">{l.admin_id}</td>
+                  <td class="py-3 px-4">
+                    <span class="bg-slate-100 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                      {l.action.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-slate-700">{l.resource_type}</td>
+                  <td class="py-3 px-4 font-mono text-slate-500">{l.resource_id || '—'}</td>
+                  <td class="py-3 px-4 font-mono text-[10px] text-slate-500 max-w-xs truncate" title={l.metadata_json || ''}>
+                    {l.metadata_json || '—'}
+                  </td>
+                  <td class="py-3 px-4 text-slate-400">{new Date(l.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="p-12 text-center text-slate-400">
+          <span class="text-3xl block mb-2">📋</span>
+          <p class="font-bold text-slate-700">No audit logs recorded yet.</p>
+        </div>
+      )}
+    </div>
+
+  </div>
+</AdminLayout>

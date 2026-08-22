@@ -1,0 +1,162 @@
+---
+// src/pages/admin/users/index.astro
+// Admin User Management Dashboard
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import type { User } from '../../../lib/user_auth.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const users = (await db.query<User>(`
+  SELECT u.*,
+         (SELECT COUNT(*) FROM saved_items si WHERE si.user_id = u.id) as saved_count,
+         (SELECT COUNT(*) FROM notifications n WHERE n.user_id = u.id) as notif_count
+  FROM users u
+  ORDER BY u.created_at DESC
+  LIMIT 100
+`)).results;
+
+const stats = {
+  total: users.length,
+  active: users.filter(u => u.status === 'active').length,
+  verified: users.filter(u => u.email_verified === 1).length,
+  suspended: users.filter(u => u.status === 'suspended').length,
+};
+---
+
+<AdminLayout title="Candidate Users Management">
+  <div class="space-y-6">
+    
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">Candidate User Management</h1>
+        <p class="text-xs text-slate-500 mt-1">View registered candidates, email verification status, and manage account state.</p>
+      </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Users</span>
+        <span class="text-2xl font-black text-slate-900 mt-1 block">{stats.total}</span>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Active Users</span>
+        <span class="text-2xl font-black text-emerald-600 mt-1 block">{stats.active}</span>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Email Verified</span>
+        <span class="text-2xl font-black text-blue-600 mt-1 block">{stats.verified}</span>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Suspended</span>
+        <span class="text-2xl font-black text-rose-600 mt-1 block">{stats.suspended}</span>
+      </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Registered Accounts ({users.length})</h2>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-bold">
+              <th class="py-3 px-4">Candidate</th>
+              <th class="py-3 px-4">Email</th>
+              <th class="py-3 px-4">Verification</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4">Registered</th>
+              <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {users.map((u: any) => (
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-bold text-slate-900">{u.name}</td>
+                <td class="py-3 px-4 font-mono text-slate-600">{u.email}</td>
+                <td class="py-3 px-4">
+                  {u.email_verified === 1 ? (
+                    <span class="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded">
+                      Verified
+                    </span>
+                  ) : (
+                    <span class="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded">
+                      Unverified
+                    </span>
+                  )}
+                </td>
+                <td class="py-3 px-4">
+                  <span class={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                    u.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                  }`}>
+                    {u.status}
+                  </span>
+                </td>
+                <td class="py-3 px-4 text-slate-500">{new Date(u.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                <td class="py-3 px-4 text-right space-x-2">
+                  {u.status === 'active' ? (
+                    <button
+                      type="button"
+                      data-id={u.id}
+                      data-action="suspend"
+                      class="user-action-btn text-rose-600 hover:text-rose-800 font-bold"
+                    >
+                      Suspend
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      data-id={u.id}
+                      data-action="activate"
+                      class="user-action-btn text-emerald-600 hover:text-emerald-800 font-bold"
+                    >
+                      Reactivate
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {users.length === 0 && (
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-400">
+                  No candidate users registered yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</AdminLayout>
+
+<script>
+  document.querySelectorAll('.user-action-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const userId = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+      if (!userId || !action) return;
+
+      if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+      try {
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, action }),
+        });
+        const data = (await res.json()) as any;
+        if (data.success) window.location.reload();
+      } catch {}
+    });
+  });
+</script>
