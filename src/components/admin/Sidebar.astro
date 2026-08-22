@@ -32,6 +32,7 @@ const menuItems = [
   { name: 'Error Logs', href: '/admin/logs/errors', icon: 'alert-triangle' },
   { name: 'Audit Logs', href: '/admin/logs/audit', icon: 'file-text' },
   { name: 'SEO Engine', href: '/admin/seo', icon: 'search' },
+  { name: 'Google Indexing', href: '/admin/seo/indexing', icon: 'zap', badge: 'API' },
   { name: 'Ad Settings', href: '/admin/settings/ads', icon: 'layout' },
   { name: 'Feature Flags', href: '/admin/settings/flags', icon: 'toggle-right' },
   { name: 'System Settings', href: '/admin/settings', icon: 'settings' },
@@ -139,6 +140,11 @@ const menuItems = [
             )}
             {item.icon === 'activity' && (
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            )}
+            {item.icon === 'zap' && (
+              <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             )}

@@ -1,0 +1,477 @@
+---
+// src/pages/admin/seo/indexing.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import { getGoogleIndexingSettings, getRecentIndexingLogs } from '../../../lib/seo/google-indexing.ts';
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const settings = await getGoogleIndexingSettings(db);
+const recentLogs = await getRecentIndexingLogs(db, 50);
+
+const todayLogs = (await db.first<{ total: number; success: number; failed: number }>(`
+  SELECT 
+    COUNT(id) as total,
+    COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), 0) as success,
+    COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END), 0) as failed
+  FROM google_indexing_logs
+  WHERE created_at >= date('now', 'start of day')
+`)) || { total: 0, success: 0, failed: 0 };
+
+const isConfigured = Boolean(settings.client_email && settings.private_key);
+---
+
+<AdminLayout title="Google Instant Indexing API" subtitle="Fast-track Google search indexation within minutes using Google Cloud Indexing API (OAuth2 JWT / RS256)." activeNav="/admin/seo/indexing">
+  <div class="space-y-6">
+    
+    <!-- Top Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center space-x-2.5">
+          <span class="text-2xl">⚡</span>
+          <span>Google Instant Indexing Engine</span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Direct API push to Google Indexing crawler for instant crawling of Job Notifications, Results & Updates.
+        </p>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <a href="/admin/seo" class="px-3 py-2 text-xs font-bold bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+          &larr; SEO Dashboard
+        </a>
+        <a href="/admin/seo/redirects" class="px-3 py-2 text-xs font-bold bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+          301 Redirects
+        </a>
+      </div>
+    </div>
+
+    <!-- Metric Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- API Status -->
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">API Integration</span>
+          <span class={`text-lg font-black ${isConfigured ? 'text-emerald-600' : 'text-amber-600'}`}>
+            {isConfigured ? 'Connected & Active' : 'Setup Required'}
+          </span>
+          <span class="block text-[11px] text-slate-400 mt-0.5 font-mono truncate max-w-[180px]">
+            {settings.client_email || 'No Service Account'}
+          </span>
+        </div>
+        <div class={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base ${isConfigured ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+          {isConfigured ? '✓' : '⚠️'}
+        </div>
+      </div>
+
+      <!-- Today's Pushes -->
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Submitted Today</span>
+          <span class="text-2xl font-black text-slate-900">{todayLogs.total}</span>
+          <span class="block text-[11px] text-slate-400 mt-0.5">URLs pushed to Google</span>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-base">
+          🚀
+        </div>
+      </div>
+
+      <!-- Success Rate -->
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Success Rate</span>
+          <span class="text-2xl font-black text-emerald-600">
+            {todayLogs.total > 0 ? Math.round((todayLogs.success / todayLogs.total) * 100) : 100}%
+          </span>
+          <span class="block text-[11px] text-slate-400 mt-0.5">{todayLogs.success} accepted / {todayLogs.failed} errors</span>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base">
+          🎯
+        </div>
+      </div>
+
+      <!-- Quota -->
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Default Quota</span>
+          <span class="text-2xl font-black text-slate-900">{settings.daily_quota || 200}</span>
+          <span class="block text-[11px] text-slate-400 mt-0.5">Requests / 24h</span>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-base">
+          📊
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Main 2-Column Work Area -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Column: Manual Instant Push (5 Cols) -->
+      <div class="lg:col-span-5 space-y-6">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
+          <div class="flex items-center space-x-2 pb-3 border-b border-slate-100 mb-4">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Instant URL Submission</h2>
+          </div>
+
+          <form id="instant-index-form" class="space-y-4">
+            <div>
+              <label for="submit-urls" class="block text-xs font-bold text-slate-700 mb-1">
+                Enter URL(s) to Index (One per line)
+              </label>
+              <textarea
+                id="submit-urls"
+                rows="4"
+                required
+                class="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-300 text-xs font-mono focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                placeholder="https://sarkariinfo.in/jobs/upsc-cse-2026&#10;https://sarkariinfo.in/results/ssc-cgl-tier-1"
+              ></textarea>
+              <p class="text-[11px] text-slate-400 mt-1">You can submit up to 50 URLs at once.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Action Type</label>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold cursor-pointer hover:bg-slate-100">
+                  <input type="radio" name="notify_type" value="URL_UPDATED" checked class="text-blue-600" />
+                  <span>URL Updated / Published</span>
+                </label>
+                <label class="flex items-center space-x-2 p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold cursor-pointer hover:bg-slate-100">
+                  <input type="radio" name="notify_type" value="URL_DELETED" class="text-rose-600" />
+                  <span>URL Deleted / Removed</span>
+                </label>
+              </div>
+            </div>
+
+            <button
+              id="submit-index-btn"
+              type="submit"
+              class="w-full py-2.5 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-2"
+            >
+              <span>⚡ Push to Google Indexing API</span>
+            </button>
+          </form>
+
+          <div id="submit-result-box" class="hidden mt-4 p-3.5 rounded-lg text-xs"></div>
+        </div>
+
+        <!-- How It Works Card -->
+        <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-5 text-white shadow-xs border border-slate-700">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">⚡ How Google Instant Indexing Works</h3>
+          <ul class="text-[11px] text-slate-300 space-y-2 leading-relaxed">
+            <li class="flex items-start space-x-2">
+              <span class="text-emerald-400 font-bold">•</span>
+              <span><strong>Instant Crawler Ping:</strong> Notifies Googlebot immediately instead of waiting days for organic crawls.</span>
+            </li>
+            <li class="flex items-start space-x-2">
+              <span class="text-emerald-400 font-bold">•</span>
+              <span><strong>Secure OAuth2 / RS256:</strong> Uses Google Cloud Service Account keys without storing plaintext credentials.</span>
+            </li>
+            <li class="flex items-start space-x-2">
+              <span class="text-emerald-400 font-bold">•</span>
+              <span><strong>Auto-Publish Hook:</strong> Automatically pings Google when new recruitments are verified or updated.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right Column: API Settings & Service Account Credentials (7 Cols) -->
+      <div class="lg:col-span-7 space-y-6">
+        
+        <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Google Service Account Configuration</h2>
+            </div>
+            <button
+              id="test-connection-btn"
+              type="button"
+              class="px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors"
+            >
+              Test Connection
+            </button>
+          </div>
+
+          <div id="test-alert-box" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold"></div>
+
+          <form id="indexing-settings-form" class="space-y-4">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label class="flex items-center space-x-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                <input type="checkbox" id="auto-publish-toggle" checked={settings.auto_index_on_publish} class="w-4 h-4 rounded text-blue-600" />
+                <span class="text-xs font-semibold text-slate-800">Auto-Index on Publish</span>
+              </label>
+
+              <label class="flex items-center space-x-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer">
+                <input type="checkbox" id="auto-update-toggle" checked={settings.auto_index_on_update} class="w-4 h-4 rounded text-blue-600" />
+                <span class="text-xs font-semibold text-slate-800">Auto-Index on Update</span>
+              </label>
+            </div>
+
+            <div>
+              <label for="service-account-json" class="block text-xs font-bold text-slate-700 mb-1">
+                Google Service Account Key JSON
+              </label>
+              <textarea
+                id="service-account-json"
+                rows="5"
+                class="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-300 text-xs font-mono focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                placeholder='Paste the entire JSON key downloaded from Google Cloud Console:&#10;{ "type": "service_account", "project_id": "...", "private_key": "...", "client_email": "..." }'
+              ></textarea>
+              <p class="text-[11px] text-slate-400 mt-1">
+                Download this JSON key from <em>Google Cloud Console &rarr; IAM & Admin &rarr; Service Accounts &rarr; Keys</em>.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="client-email" class="block text-xs font-bold text-slate-700 mb-1">Client Email</label>
+                <input
+                  type="text"
+                  id="client-email"
+                  value={settings.client_email}
+                  class="w-full px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-300 text-xs font-mono"
+                  placeholder="indexing-bot@project.iam.gserviceaccount.com"
+                />
+              </div>
+
+              <div>
+                <label for="project-id" class="block text-xs font-bold text-slate-700 mb-1">Project ID</label>
+                <input
+                  type="text"
+                  id="project-id"
+                  value={settings.project_id}
+                  class="w-full px-3.5 py-2 rounded-lg bg-slate-50 border border-slate-300 text-xs font-mono"
+                  placeholder="sarkari-portal-indexing"
+                />
+              </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+              <button
+                type="submit"
+                id="save-settings-btn"
+                class="px-5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition-colors"
+              >
+                Save Indexing Credentials
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Bottom Audit Logs Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Recent Google Indexing Requests</h2>
+          <p class="text-xs text-slate-500">Live API push responses and status codes from Googlebot</p>
+        </div>
+        <span class="text-xs font-semibold text-slate-400">Last 50 Logs</span>
+      </div>
+
+      {recentLogs.length === 0 ? (
+        <div class="p-8 text-center text-xs text-slate-500">
+          No indexing requests recorded yet. Configure your Service Account JSON above and click "Push to Google Indexing API".
+        </div>
+      ) : (
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase text-[10px] tracking-wider">
+              <tr>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Type</th>
+                <th class="py-3 px-4">Target URL</th>
+                <th class="py-3 px-4">HTTP</th>
+                <th class="py-3 px-4">Submitted At</th>
+                <th class="py-3 px-4 text-right">Details</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-800 font-medium">
+              {recentLogs.map((log) => (
+                <tr class="hover:bg-slate-50 transition-colors">
+                  <td class="py-2.5 px-4">
+                    <span class={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                      log.status === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                    }`}>
+                      {log.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td class="py-2.5 px-4 font-mono text-[10px] text-slate-500">
+                    {log.notification_type}
+                  </td>
+                  <td class="py-2.5 px-4 max-w-xs truncate font-mono text-slate-700">
+                    <a href={log.url} target="_blank" rel="noopener" class="hover:text-blue-600">
+                      {log.url}
+                    </a>
+                  </td>
+                  <td class="py-2.5 px-4 font-mono font-bold">
+                    <span class={log.http_status === 200 ? 'text-emerald-600' : 'text-rose-600'}>
+                      {log.http_status || 'N/A'}
+                    </span>
+                  </td>
+                  <td class="py-2.5 px-4 text-slate-400 text-[11px] whitespace-nowrap">
+                    {new Date(log.created_at).toLocaleString('en-IN')}
+                  </td>
+                  <td class="py-2.5 px-4 text-right">
+                    {log.error_message ? (
+                      <span class="text-rose-600 text-[11px] truncate max-w-[150px] inline-block" title={log.error_message}>
+                        {log.error_message}
+                      </span>
+                    ) : (
+                      <span class="text-emerald-600 text-[11px]">Indexed</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+
+  </div>
+
+  <script>
+    // Handle Settings Form Submission
+    const settingsForm = document.getElementById('indexing-settings-form') as HTMLFormElement;
+    const testBtn = document.getElementById('test-connection-btn') as HTMLButtonElement;
+    const testAlert = document.getElementById('test-alert-box');
+
+    settingsForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('save-settings-btn') as HTMLButtonElement;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      const service_account_json = (document.getElementById('service-account-json') as HTMLTextAreaElement).value;
+      const client_email = (document.getElementById('client-email') as HTMLInputElement).value;
+      const project_id = (document.getElementById('project-id') as HTMLInputElement).value;
+      const auto_index_on_publish = (document.getElementById('auto-publish-toggle') as HTMLInputElement).checked;
+      const auto_index_on_update = (document.getElementById('auto-update-toggle') as HTMLInputElement).checked;
+
+      try {
+        const res = await fetch('/api/admin/seo/indexing/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            enabled: true,
+            service_account_json,
+            client_email,
+            project_id,
+            auto_index_on_publish,
+            auto_index_on_update
+          })
+        });
+
+        const data = await res.json() as any;
+        if (res.ok && data.success) {
+          alert('Google Indexing Settings saved successfully!');
+          window.location.reload();
+        } else {
+          alert('Failed to save: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err: any) {
+        alert('Network error: ' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Indexing Credentials';
+      }
+    });
+
+    // Handle Test Connection Button
+    testBtn?.addEventListener('click', async () => {
+      testBtn.disabled = true;
+      testBtn.textContent = 'Verifying...';
+      if (testAlert) {
+        testAlert.classList.add('hidden');
+        testAlert.className = 'p-3 rounded-lg text-xs font-semibold';
+      }
+
+      const service_account_json = (document.getElementById('service-account-json') as HTMLTextAreaElement)?.value;
+      const client_email = (document.getElementById('client-email') as HTMLInputElement)?.value;
+
+      try {
+        const res = await fetch('/api/admin/seo/indexing/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ service_account_json, client_email })
+        });
+
+        const data = await res.json() as any;
+        if (testAlert) {
+          testAlert.classList.remove('hidden');
+          if (res.ok && data.success) {
+            testAlert.classList.add('bg-emerald-50', 'text-emerald-800', 'border', 'border-emerald-200');
+            testAlert.textContent = data.message;
+          } else {
+            testAlert.classList.add('bg-rose-50', 'text-rose-800', 'border', 'border-rose-200');
+            testAlert.textContent = 'Test Failed: ' + (data.error || 'Authentication error');
+          }
+        }
+      } catch (err: any) {
+        if (testAlert) {
+          testAlert.classList.remove('hidden');
+          testAlert.classList.add('bg-rose-50', 'text-rose-800', 'border', 'border-rose-200');
+          testAlert.textContent = 'Network error: ' + err.message;
+        }
+      } finally {
+        testBtn.disabled = false;
+        testBtn.textContent = 'Test Connection';
+      }
+    });
+
+    // Handle Manual Push Form Submission
+    const instantForm = document.getElementById('instant-index-form') as HTMLFormElement;
+    const submitResultBox = document.getElementById('submit-result-box');
+
+    instantForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submit-index-btn') as HTMLButtonElement;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Pushing to Google...';
+      if (submitResultBox) submitResultBox.classList.add('hidden');
+
+      const text = (document.getElementById('submit-urls') as HTMLTextAreaElement).value;
+      const urls = text.split('\n').map(u => u.trim()).filter(Boolean);
+      const notify_type = (document.querySelector('input[name="notify_type"]:checked') as HTMLInputElement)?.value || 'URL_UPDATED';
+
+      try {
+        const res = await fetch('/api/admin/seo/indexing/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls, type: notify_type })
+        });
+
+        const data = await res.json() as any;
+        if (submitResultBox) {
+          submitResultBox.classList.remove('hidden');
+          if (res.ok && (data.success || data.data?.successCount > 0)) {
+            submitResultBox.className = 'mt-4 p-3.5 rounded-lg text-xs bg-emerald-50 text-emerald-900 border border-emerald-200';
+            submitResultBox.innerHTML = `<strong>Success!</strong> Submitted ${data.data?.total || 1} URL(s) to Googlebot. Accepted: ${data.data?.successCount || 1}, Errors: ${data.data?.failedCount || 0}`;
+            setTimeout(() => window.location.reload(), 2000);
+          } else {
+            submitResultBox.className = 'mt-4 p-3.5 rounded-lg text-xs bg-rose-50 text-rose-900 border border-rose-200';
+            submitResultBox.innerHTML = `<strong>Submission Failed:</strong> ${data.error || data.data?.results?.[0]?.error || 'Check Google credentials.'}`;
+          }
+        }
+      } catch (err: any) {
+        if (submitResultBox) {
+          submitResultBox.classList.remove('hidden');
+          submitResultBox.className = 'mt-4 p-3.5 rounded-lg text-xs bg-rose-50 text-rose-900 border border-rose-200';
+          submitResultBox.textContent = 'Error: ' + err.message;
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '⚡ Push to Google Indexing API';
+      }
+    });
+  </script>
+</AdminLayout>
