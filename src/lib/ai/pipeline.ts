@@ -159,27 +159,13 @@ export async function runAIPipeline(
       }
     }
 
-    // 11. Determine Final Item Status based on Application Last Date & Fact Verification
-    let isDateExpired = false;
-    const lastDateStr = (extraction as any).application_last_date || (extraction as any).last_date;
-    if (lastDateStr) {
-      const parsedDate = new Date(lastDateStr);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (!isNaN(parsedDate.getTime()) && parsedDate < today) {
-        isDateExpired = true;
-      }
-    }
-
+    // 11. Determine Final Item Status (Auto-Publish by default unless critical conflicts exist)
     let finalContentStatus: ContentStatus = 'published';
-    if (isDateExpired) {
-      // Application date has already passed -> Directly Archive!
-      finalContentStatus = 'archived';
-    } else if (verification.hasCriticalConflicts) {
+    if (verification.hasCriticalConflicts) {
       // Conflicts detected -> Flag for human review
       finalContentStatus = 'review';
     } else {
-      // Application date is upcoming / active -> Automatically Publish!
+      // Active / verified notification -> Automatically Publish to live portal!
       finalContentStatus = 'published';
     }
 

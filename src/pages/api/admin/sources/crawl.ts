@@ -1,11 +1,13 @@
 // src/pages/api/admin/sources/crawl.ts
-// Manual "Run Now" trigger endpoint for a specific source
+// Manual "Run Now" trigger endpoint for a specific source with Automatic AI Auto-Publishing
 
 import type { APIRoute } from 'astro';
 import { getDb } from '../../../../lib/db';
 import { getStorage } from '../../../../lib/r2';
 import { crawlSingleSource } from '../../../../lib/crawler/engine';
-import type { Source } from '../../../../lib/types';
+import { DeepSeekClient } from '../../../../lib/ai/deepseek';
+import { runAIPipeline } from '../../../../lib/ai/pipeline';
+import type { Source, SourcePage } from '../../../../lib/types';
 
 // In-memory cooldown tracking per source (10 seconds)
 const LAST_RUN_TIMESTAMPS = new Map<string, number>();
@@ -41,6 +43,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const d1 = (locals as any)?.runtime?.env?.DB;
     const r2 = (locals as any)?.runtime?.env?.R2;
+    const apiKey = (locals as any)?.runtime?.env?.DEEPSEEK_API_KEY || (typeof process !== 'undefined' ? process.env?.DEEPSEEK_API_KEY : '');
     const db = getDb(d1);
     const storage = getStorage(r2);
 
@@ -57,10 +60,46 @@ export const POST: APIRoute = async ({ request, locals }) => {
       respectRobots: source.robots_allowed === 1,
     });
 
+    // Auto-Process newly discovered or updated pages for this source
+    let autoPublishedCount = 0;
+    if (summary.newItems > 0 || summary.updatedItems > 0 || (summary.urlsDiscovered > 0 && !summary.errors)) {
+      const aiClient = new DeepSeekClient(
+        {
+          apiKey,
+          mockMode: !apiKey || apiKey === 'mock_key',
+        },
+        db
+      );
+
+      try {
+        const pagesToProcess = (await db.query<SourcePage>(`
+          SELECT sp.* FROM source_pages sp
+          LEFT JOIN content_items ci ON ci.source_url = sp.url
+          WHERE sp.source_id = ? AND (ci.id IS NULL OR ci.status = 'draft')
+          ORDER BY sp.last_seen_at DESC
+          LIMIT 10
+        `, [source.id])).results;
+
+        for (const page of pagesToProcess) {
+          try {
+            const aiRes = await runAIPipeline(db, storage, aiClient, page, source);
+            if (aiRes.success) {
+              autoPublishedCount++;
+            }
+          } catch (itemErr) {
+            console.warn('[Auto-Publish Item Error]', page.url, itemErr);
+          }
+        }
+      } catch (aiErr) {
+        console.warn('[Auto-Publish Batch Notice]', aiErr);
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
-      message: `Crawl ${summary.status}: Discovered ${summary.urlsDiscovered} URLs, ${summary.newItems} new, ${summary.updatedItems} updated.`,
+      message: `Crawl ${summary.status}: Discovered ${summary.urlsDiscovered} URLs, ${summary.newItems} new, ${summary.updatedItems} updated. Auto-published ${autoPublishedCount} jobs/posts.`,
       summary,
+      autoPublishedCount,
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

@@ -123,6 +123,13 @@ const recentContent = (await db.query<ContentItem>(`
       <div class="flex items-center space-x-3 text-xs text-slate-500">
         <span>Model: <strong>deepseek-chat</strong></span>
         <span>•</span>
+        <button
+          id="btn-auto-publish-all"
+          class="px-3 py-1 bg-gov-saffron hover:bg-orange-600 text-white font-bold rounded-lg shadow-xs transition-colors flex items-center space-x-1 cursor-pointer"
+        >
+          <span>⚡ Auto-Publish All Posts</span>
+        </button>
+        <span>•</span>
         <a href="/admin/content/review" class="text-blue-600 font-bold hover:underline">
           Review Queue ({pendingReviewCount}) &rarr;
         </a>
@@ -337,4 +344,31 @@ const recentContent = (await db.query<ContentItem>(`
 
   </div>
 
+  <script>
+    const autoPublishBtn = document.getElementById('btn-auto-publish-all') as HTMLButtonElement;
+    autoPublishBtn?.addEventListener('click', async () => {
+      if (!confirm('Auto-publish all pending and discovered recruitment notices now?')) return;
+      autoPublishBtn.disabled = true;
+      autoPublishBtn.innerHTML = '<span>⏳ Processing & Publishing...</span>';
+
+      try {
+        const res = await fetch('/api/admin/content/publish-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json() as any;
+        if (res.ok && data.success) {
+          alert(data.message || 'Auto-publishing complete!');
+          window.location.reload();
+        } else {
+          alert('Error: ' + (data.error || 'Failed to auto-publish.'));
+        }
+      } catch (err: any) {
+        alert('Network error: ' + err.message);
+      } finally {
+        autoPublishBtn.disabled = false;
+        autoPublishBtn.innerHTML = '<span>⚡ Auto-Publish All Posts</span>';
+      }
+    });
+  </script>
 </AdminLayout>
