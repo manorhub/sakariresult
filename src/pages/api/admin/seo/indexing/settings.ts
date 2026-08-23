@@ -44,7 +44,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const body = (await request.json()) as any;
-    let { enabled, auto_index_on_publish, auto_index_on_update, service_account_json, client_email, private_key, project_id } = body || {};
+    let { enabled, auto_index_on_publish, auto_index_on_update, only_index_job_postings, service_account_json, client_email, private_key, project_id } = body || {};
 
     if (service_account_json && typeof service_account_json === 'string') {
       try {
@@ -66,6 +66,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       enabled: enabled !== undefined ? Boolean(enabled) : current.enabled,
       auto_index_on_publish: auto_index_on_publish !== undefined ? Boolean(auto_index_on_publish) : current.auto_index_on_publish,
       auto_index_on_update: auto_index_on_update !== undefined ? Boolean(auto_index_on_update) : current.auto_index_on_update,
+      only_index_job_postings: only_index_job_postings !== undefined ? Boolean(only_index_job_postings) : current.only_index_job_postings,
       client_email: client_email || current.client_email,
       private_key: (private_key && !private_key.startsWith('••••••••')) ? private_key : current.private_key,
       project_id: project_id || current.project_id

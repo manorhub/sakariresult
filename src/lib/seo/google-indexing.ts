@@ -15,6 +15,7 @@ export interface GoogleIndexingSettings {
   enabled: boolean;
   auto_index_on_publish: boolean;
   auto_index_on_update: boolean;
+  only_index_job_postings: boolean; // Strictly limits API push to Job Postings (/jobs/*) per Google Policy
   client_email: string;
   private_key: string;
   project_id: string;
@@ -152,6 +153,7 @@ export async function getGoogleIndexingSettings(db: DbClient): Promise<GoogleInd
     enabled: false,
     auto_index_on_publish: true,
     auto_index_on_update: true,
+    only_index_job_postings: true,
     client_email: '',
     private_key: '',
     project_id: '',
@@ -159,6 +161,37 @@ export async function getGoogleIndexingSettings(db: DbClient): Promise<GoogleInd
   });
 
   return settings;
+}
+
+/**
+ * Helper to check if a URL or Content Type is eligible for Google Indexing API
+ * Per Google's official documentation, Indexing API is strictly reserved for JobPosting pages.
+ */
+export function isJobPostingUrlOrType(url: string, contentType?: string | null): boolean {
+  if (contentType) {
+    return contentType === 'job' || contentType === 'government_job';
+  }
+  try {
+    const parsed = new URL(url, 'https://realsarkariexam.com');
+    const path = parsed.pathname.toLowerCase();
+    // Exclude explicit non-job routes
+    if (
+      path.startsWith('/results') ||
+      path.startsWith('/admit-card') ||
+      path.startsWith('/answer-key') ||
+      path.startsWith('/syllabus') ||
+      path.startsWith('/schemes') ||
+      path.startsWith('/exams') ||
+      path.startsWith('/scholarships') ||
+      path.startsWith('/important-updates')
+    ) {
+      return false;
+    }
+    // Check if it's a job path
+    return path.startsWith('/jobs/') || path === '/jobs';
+  } catch {
+    return url.includes('/jobs/');
+  }
 }
 
 /**
@@ -183,10 +216,24 @@ export async function submitUrlToGoogle(
   type: 'URL_UPDATED' | 'URL_DELETED' = 'URL_UPDATED',
   options: {
     contentItemId?: string;
+    contentType?: string;
     overrideCredentials?: GoogleServiceAccountCredentials;
   } = {}
-): Promise<{ success: boolean; data?: any; error?: string; httpStatus?: number }> {
+): Promise<{ success: boolean; data?: any; error?: string; httpStatus?: number; skipped?: boolean }> {
   const settings = await getGoogleIndexingSettings(db);
+
+  // Google Policy Compliance Check: Restrict to Job Postings only
+  if (settings.only_index_job_postings !== false) {
+    const isJob = isJobPostingUrlOrType(url, options.contentType);
+    if (!isJob) {
+      return {
+        success: true,
+        skipped: true,
+        error: 'Skipped: URL is not a JobPosting. Google Indexing API is strictly reserved for Job Notifications per Google Guidelines. Results, Admit Cards, and Updates are indexed via XML sitemap.',
+      };
+    }
+  }
+
   const credentials = options.overrideCredentials || {
     client_email: settings.client_email,
     private_key: settings.private_key,

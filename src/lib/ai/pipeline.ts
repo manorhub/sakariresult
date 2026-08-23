@@ -386,12 +386,15 @@ export async function runAIPipeline(
       'ai'
     );
 
-    // 16. Auto Google Instant Indexing on Publish
-    if (finalContentStatus === 'published') {
+    // 16. Auto Google Instant Indexing on Publish (Strictly for Job Postings per Google API Policy)
+    if (finalContentStatus === 'published' && classification.mappedContentType === 'job') {
       try {
         const routePrefix = getContentTypeRoute(classification.mappedContentType);
         const publicUrl = `https://realsarkariexam.com/${routePrefix}/${slug}`;
-        await submitUrlToGoogle(db, publicUrl, 'URL_UPDATED', { contentItemId });
+        await submitUrlToGoogle(db, publicUrl, 'URL_UPDATED', {
+          contentItemId,
+          contentType: classification.mappedContentType,
+        });
       } catch (idxErr: any) {
         console.warn('[Auto Google Indexing Notice]', idxErr?.message);
       }
