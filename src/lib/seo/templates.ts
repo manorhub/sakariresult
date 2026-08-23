@@ -21,7 +21,7 @@ export interface GeneratedSeoMetadata {
  * Strictly based on verified available fields.
  */
 export function generateSeoMetadata(input: SeoGenerationInput): GeneratedSeoMetadata {
-  const { item, siteName = 'Sarkari Info', currentYear = new Date().getFullYear() } = input;
+  const { item, siteName = 'RealSarkariExam', currentYear = new Date().getFullYear() } = input;
 
   const org = item.organization_name || 'Government of India';
   const titleText = item.title.trim();

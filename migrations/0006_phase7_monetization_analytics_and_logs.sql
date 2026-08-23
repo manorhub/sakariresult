@@ -119,7 +119,7 @@ CREATE INDEX IF NOT EXISTS idx_global_settings_category ON global_settings(categ
 
 -- Seed Initial Global Settings
 INSERT OR IGNORE INTO global_settings (key, category, value_json) VALUES
-('general_settings', 'general', '{"siteName":"Sarkari Info","logo":"/logo.svg","description":"India Premier Official Government Jobs, Admit Cards & Results Portal","contactEmail":"contact@sarkariinfo.in","primaryDomain":"https://sarkariinfo.in"}'),
+('general_settings', 'general', '{"siteName":"RealSarkariExam","logo":"/logo.svg","description":"India Premier Official Government Jobs, Admit Cards & Results Portal","contactEmail":"contact@realsarkariexam.com","primaryDomain":"https://realsarkariexam.com"}'),
 ('ads_settings', 'ads', '{"enabled":true,"provider":"google_adsense","publisherId":"ca-pub-0000000000000000","headerAds":true,"inContentAds":true,"sidebarAds":true,"footerAds":true,"mobileAds":true,"desktopAds":true}'),
 ('site_settings', 'site', '{"maintenanceMode":false,"announcementBar":{"enabled":true,"text":"Official UPSC & SSC 2026 Examination Calendars Announced. Check updates now!","link":"/important-updates","startDate":null,"endDate":null},"defaultLanguage":"en","defaultCurrency":"INR"}');
 

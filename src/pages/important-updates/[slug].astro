@@ -46,7 +46,7 @@ const breadcrumbs = [
 <BaseLayout
   title={item.seo_title || `${item.title} — Official Notice`}
   description={item.meta_description || item.excerpt || `Read official details regarding ${item.title}.`}
-  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/important-updates/${item.slug}`}
+  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://realsarkariexam.com'}/important-updates/${item.slug}`}
 >
   {isPreview && <AdminPreviewBanner status={item.status} itemId={item.id} />}
 

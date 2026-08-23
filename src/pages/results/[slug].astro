@@ -49,7 +49,7 @@ const breadcrumbs = [
 <BaseLayout
   title={item.seo_title || `${item.title} — Check Result & Merit List`}
   description={item.meta_description || item.excerpt || `Download ${item.title} scorecard, merit list PDF, and cut-off marks.`}
-  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/results/${item.slug}`}
+  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://realsarkariexam.com'}/results/${item.slug}`}
 >
   {isPreview && <AdminPreviewBanner status={item.status} itemId={item.id} />}
 

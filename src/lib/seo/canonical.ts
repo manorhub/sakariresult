@@ -1,7 +1,7 @@
 // src/lib/seo/canonical.ts
 // Standard Canonical URL Normalizer adhering strictly to Google Search Console standards
 
-const DEFAULT_SITE_URL = 'https://sarkariinfo.in';
+const DEFAULT_SITE_URL = 'https://realsarkariexam.com';
 
 const TRACKING_PARAMS = new Set([
   'utm_source',

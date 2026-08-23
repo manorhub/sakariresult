@@ -49,7 +49,7 @@ const breadcrumbs = [
 <BaseLayout
   title={item.seo_title || `${item.title} — Download Admit Card / Hall Ticket`}
   description={item.meta_description || item.excerpt || `Download ${item.title} hall ticket, check exam date, venue, and reporting instructions.`}
-  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/admit-card/${item.slug}`}
+  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://realsarkariexam.com'}/admit-card/${item.slug}`}
 >
   {isPreview && <AdminPreviewBanner status={item.status} itemId={item.id} />}
 

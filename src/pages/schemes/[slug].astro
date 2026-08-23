@@ -47,7 +47,7 @@ const breadcrumbs = [
 <BaseLayout
   title={item.seo_title || `${item.title} — Guidelines & Online Registration`}
   description={item.meta_description || item.excerpt || `Check ${item.title} benefits, eligibility criteria, and application procedure.`}
-  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/schemes/${item.slug}`}
+  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://realsarkariexam.com'}/schemes/${item.slug}`}
 >
   {isPreview && <AdminPreviewBanner status={item.status} itemId={item.id} />}
 

@@ -10,7 +10,7 @@ import type { FAQItem } from '../ai/types.ts';
  */
 export function buildBreadcrumbSchema(
   items: { name: string; href?: string }[],
-  siteUrl: string = 'https://sarkariinfo.in'
+  siteUrl: string = 'https://realsarkariexam.com'
 ) {
   const baseOrigin = siteUrl.replace(/\/+$/, '');
   
@@ -40,8 +40,8 @@ export function buildBreadcrumbSchema(
  * Builds Schema.org WebSite JSON-LD with SearchAction
  */
 export function buildWebSiteSchema(
-  siteName: string = 'Sarkari Info',
-  siteUrl: string = 'https://sarkariinfo.in'
+  siteName: string = 'RealSarkariExam',
+  siteUrl: string = 'https://realsarkariexam.com'
 ) {
   const baseOrigin = siteUrl.replace(/\/+$/, '');
   return {
@@ -61,7 +61,7 @@ export function buildWebSiteSchema(
 /**
  * Builds Schema.org Organization JSON-LD
  */
-export function buildOrganizationSchema(org: Organization, siteUrl: string = 'https://sarkariinfo.in') {
+export function buildOrganizationSchema(org: Organization, siteUrl: string = 'https://realsarkariexam.com') {
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -74,7 +74,7 @@ export function buildOrganizationSchema(org: Organization, siteUrl: string = 'ht
 /**
  * Builds Schema.org JobPosting JSON-LD
  */
-export function buildJobPostingSchema(item: PublicJobItem, siteUrl: string = 'https://sarkariinfo.in') {
+export function buildJobPostingSchema(item: PublicJobItem, siteUrl: string = 'https://realsarkariexam.com') {
   const baseOrigin = siteUrl.replace(/\/+$/, '');
   const url = `${baseOrigin}/jobs/${item.slug}`;
 
@@ -126,7 +126,7 @@ export function buildJobPostingSchema(item: PublicJobItem, siteUrl: string = 'ht
 /**
  * Builds Schema.org Article JSON-LD for informational posts
  */
-export function buildArticleSchema(item: PublicJobItem, siteUrl: string = 'https://sarkariinfo.in') {
+export function buildArticleSchema(item: PublicJobItem, siteUrl: string = 'https://realsarkariexam.com') {
   const baseOrigin = siteUrl.replace(/\/+$/, '');
   const url = `${baseOrigin}/${item.type === 'job' ? 'jobs' : item.type.replace('_', '-')}/${item.slug}`;
 
@@ -143,11 +143,11 @@ export function buildArticleSchema(item: PublicJobItem, siteUrl: string = 'https
     dateModified: item.updated_at || item.published_at || item.created_at,
     author: {
       '@type': 'Organization',
-      name: 'Sarkari Info Editorial Desk',
+      name: 'RealSarkariExam Editorial Desk',
     },
     publisher: {
       '@type': 'Organization',
-      name: 'Sarkari Info',
+      name: 'RealSarkariExam',
       url: baseOrigin,
     },
   };

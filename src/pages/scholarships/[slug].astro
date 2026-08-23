@@ -49,7 +49,7 @@ const breadcrumbs = [
 <BaseLayout
   title={item.seo_title || `${item.title} — Scholarship Details & Apply Online`}
   description={item.meta_description || item.excerpt || `Check ${item.title} scholarship eligibility, amount, last date, and online application process.`}
-  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/scholarships/${item.slug}`}
+  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://realsarkariexam.com'}/scholarships/${item.slug}`}
 >
   {isPreview && <AdminPreviewBanner status={item.status} itemId={item.id} />}
 

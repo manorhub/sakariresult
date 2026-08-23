@@ -18,7 +18,7 @@ export async function sendEmailDigests(
   db: DbClient,
   emailService: EmailService,
   digestType: 'Daily' | 'Weekly',
-  siteUrl: string = 'https://sarkariinfo.in'
+  siteUrl: string = 'https://realsarkariexam.com'
 ): Promise<DigestGenerationResult> {
   const prefColumn = digestType === 'Daily' ? 'daily_digest' : 'weekly_digest';
   const lookbackHours = digestType === 'Daily' ? 24 : 168; // 1 day vs 7 days

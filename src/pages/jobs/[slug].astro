@@ -26,7 +26,7 @@ if (!slug) return Astro.redirect('/jobs');
 
 const d1 = (Astro.locals as any)?.runtime?.env?.DB;
 const db = getDb(d1);
-const siteUrl = Astro.site?.toString() || 'https://sarkariinfo.in';
+const siteUrl = Astro.site?.toString() || 'https://realsarkariexam.com';
 
 // 1. Check if slug matches a Programmatic Landing Page
 const progData = await getProgrammaticPageData(db, slug);
@@ -58,7 +58,7 @@ let progJsonLd: any = null;
 if (isProgrammatic && progData) {
   const { page, totalCount } = progData;
   progPageTitle = `${page.title}`;
-  progPageDesc = page.meta_description || `Explore ${totalCount} active verified recruitment opportunities on Sarkari Info.`;
+  progPageDesc = page.meta_description || `Explore ${totalCount} active verified recruitment opportunities on RealSarkariExam.`;
   progCanonical = buildCanonicalUrl(`/jobs/${page.slug}`, { siteUrl });
 
   progBreadcrumbs = [

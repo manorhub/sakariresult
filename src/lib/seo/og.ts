@@ -71,7 +71,7 @@ export function generateOgSvg(options: OgImageOptions): string {
     Official Application Forms &bull; Exam Results &bull; Merit Lists &bull; Admit Cards
   </text>
   <text x="1120" y="525" fill="#ff9933" font-size="18" font-weight="800" font-family="system-ui, sans-serif" text-anchor="end">
-    sarkariinfo.in
+    realsarkariexam.com
   </text>
 </svg>`;
 }

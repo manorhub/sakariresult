@@ -15,13 +15,13 @@ INSERT OR IGNORE INTO categories (id, name, slug, description, status, sort_orde
 
 -- 2. Initial Settings
 INSERT OR IGNORE INTO settings (id, key, value, type, updated_at) VALUES
-('set_site_name', 'site_name', 'Sarkari Info — Indian Govt Jobs & Results Portal', 'string', CURRENT_TIMESTAMP),
+('set_site_name', 'site_name', 'RealSarkariExam — Indian Govt Jobs & Results Portal', 'string', CURRENT_TIMESTAMP),
 ('set_site_desc', 'site_description', 'Fast, accurate, and verified updates for Indian Government Jobs, Exam Results, Admit Cards, and Answer Keys.', 'string', CURRENT_TIMESTAMP),
-('set_contact_email', 'contact_email', 'support@sarkariinfo.org', 'string', CURRENT_TIMESTAMP),
+('set_contact_email', 'contact_email', 'support@realsarkariexam.com', 'string', CURRENT_TIMESTAMP),
 ('set_maintenance', 'maintenance_mode', 'false', 'boolean', CURRENT_TIMESTAMP),
 ('set_footer_disclaimer', 'footer_disclaimer', 'This website is an informational portal and is not affiliated with any government organization or entity. Always refer to official government notifications for verified details.', 'string', CURRENT_TIMESTAMP);
 
--- 3. Default Admin Account (Email: admin@sarkariinfo.org | Default Pass: Admin@12345)
+-- 3. Default Admin Account (Email: admin@realsarkariexam.com | Default Pass: Admin@12345)
 -- Salt: 6f8e7d2a1b9c3e4f | PBKDF2-HMAC-SHA256 (100000 iterations)
 INSERT OR IGNORE INTO admins (id, email, password_hash, salt, name, role, status, created_at, updated_at) VALUES
-('adm_default_01', 'admin@sarkariinfo.org', 'c774b23879bb772e1fc9fc7a19668f3ee6a266bca13803311ad5d6006324282c', '6f8e7d2a1b9c3e4f', 'Super Administrator', 'superadmin', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('adm_default_01', 'admin@realsarkariexam.com', 'c774b23879bb772e1fc9fc7a19668f3ee6a266bca13803311ad5d6006324282c', '6f8e7d2a1b9c3e4f', 'Super Administrator', 'superadmin', 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

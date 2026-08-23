@@ -45,11 +45,11 @@ export interface FeatureFlag {
 }
 
 const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
-  siteName: 'Sarkari Info',
+  siteName: 'RealSarkariExam',
   logo: '/logo.svg',
   description: 'India Premier Official Government Jobs, Admit Cards & Results Portal',
-  contactEmail: 'contact@sarkariinfo.in',
-  primaryDomain: 'https://sarkariinfo.in',
+  contactEmail: 'contact@realsarkariexam.com',
+  primaryDomain: 'https://realsarkariexam.com',
 };
 
 const DEFAULT_ADS_SETTINGS: AdsSettings = {

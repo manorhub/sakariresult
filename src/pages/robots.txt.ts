@@ -6,7 +6,7 @@ import type { APIRoute } from 'astro';
 export const GET: APIRoute = async ({ site, url }) => {
   const baseOrigin = (site ? site.toString() : url.origin).replace(/\/+$/, '');
 
-  const content = `# Robots.txt for Sarkari Info Portal
+  const content = `# Robots.txt for RealSarkariExam Portal
 User-agent: *
 Allow: /
 Allow: /jobs/

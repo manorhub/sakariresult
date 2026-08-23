@@ -390,7 +390,7 @@ export async function runAIPipeline(
     if (finalContentStatus === 'published') {
       try {
         const routePrefix = getContentTypeRoute(classification.mappedContentType);
-        const publicUrl = `https://sarkariinfo.in/${routePrefix}/${slug}`;
+        const publicUrl = `https://realsarkariexam.com/${routePrefix}/${slug}`;
         await submitUrlToGoogle(db, publicUrl, 'URL_UPDATED', { contentItemId });
       } catch (idxErr: any) {
         console.warn('[Auto Google Indexing Notice]', idxErr?.message);

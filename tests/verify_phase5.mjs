@@ -130,7 +130,7 @@ const mockJob = {
   updated_at: '2026-02-05',
 };
 
-const generated = generateSeoMetadata({ item: mockJob, siteName: 'Sarkari Info' });
+const generated = generateSeoMetadata({ item: mockJob, siteName: 'RealSarkariExam' });
 if (!generated.title.includes('1056 Vacancies') || !generated.title.includes('IAS / IPS Officers')) {
   throw new Error(`Generated title did not include expected facts: "${generated.title}"`);
 }
@@ -144,9 +144,9 @@ console.log(`  ✔ Description: "${generated.description}"`);
 // TEST 2: Canonical URL Builder & Normalizer
 // ---------------------------------------------------------
 console.log('\nTest 2: Testing Canonical URL Builder...');
-const dirtyUrl = 'HTTP://sarkariinfo.in/JOBS/upsc-cse-2026/?utm_source=telegram&utm_medium=channel&fbclid=123#dates';
-const cleanCanonical = buildCanonicalUrl(dirtyUrl, { siteUrl: 'https://sarkariinfo.in' });
-const expectedCanonical = 'https://sarkariinfo.in/jobs/upsc-cse-2026';
+const dirtyUrl = 'HTTP://realsarkariexam.com/JOBS/upsc-cse-2026/?utm_source=telegram&utm_medium=channel&fbclid=123#dates';
+const cleanCanonical = buildCanonicalUrl(dirtyUrl, { siteUrl: 'https://realsarkariexam.com' });
+const expectedCanonical = 'https://realsarkariexam.com/jobs/upsc-cse-2026';
 
 if (cleanCanonical !== expectedCanonical) {
   throw new Error(`Canonical normalization failed. Expected "${expectedCanonical}", got "${cleanCanonical}"`);
@@ -316,7 +316,7 @@ const ogSvg = generateOgSvg({
   category: 'Civil Services',
 });
 
-if (!ogSvg.startsWith('<svg') || !ogSvg.includes('UPSC Civil Services') || !ogSvg.includes('sarkariinfo.in')) {
+if (!ogSvg.startsWith('<svg') || !ogSvg.includes('UPSC Civil Services') || !ogSvg.includes('realsarkariexam.com')) {
   throw new Error('Open Graph SVG generation failed');
 }
 console.log('  ✔ High-resolution Open Graph SVG generated (1200x630).');

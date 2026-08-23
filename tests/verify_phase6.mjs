@@ -282,12 +282,12 @@ console.log('\nTest 7: Testing Transactional Email Templates & Queue Processor..
 const emailService = new EmailService({ provider: 'mock' });
 
 // Test templates
-const vEmail = buildVerificationEmail({ name: 'Aarav', verifyUrl: 'https://sarkariinfo.in/verify?t=123' });
-const pwEmail = buildPasswordResetEmail({ name: 'Aarav', resetUrl: 'https://sarkariinfo.in/reset?t=123' });
-const jEmail = buildJobAlertEmail({ title: 'UPSC CSE', organization: 'UPSC', jobUrl: 'https://sarkariinfo.in/jobs/upsc' });
-const rEmail = buildContentAlertEmail({ type: 'result', title: 'UPSC Result', organization: 'UPSC', actionUrl: 'https://sarkariinfo.in/results/upsc' });
-const dEmail = buildDeadlineReminderEmail({ title: 'UPSC CSE', organization: 'UPSC', daysRemaining: 3, lastDate: '2026-03-05', jobUrl: 'https://sarkariinfo.in/jobs/upsc' });
-const digEmail = buildDigestEmail({ digestType: 'Daily', items: [{ title: 'UPSC CSE', type: 'job', url: 'https://sarkariinfo.in/jobs/upsc' }], siteUrl: 'https://sarkariinfo.in' });
+const vEmail = buildVerificationEmail({ name: 'Aarav', verifyUrl: 'https://realsarkariexam.com/verify?t=123' });
+const pwEmail = buildPasswordResetEmail({ name: 'Aarav', resetUrl: 'https://realsarkariexam.com/reset?t=123' });
+const jEmail = buildJobAlertEmail({ title: 'UPSC CSE', organization: 'UPSC', jobUrl: 'https://realsarkariexam.com/jobs/upsc' });
+const rEmail = buildContentAlertEmail({ type: 'result', title: 'UPSC Result', organization: 'UPSC', actionUrl: 'https://realsarkariexam.com/results/upsc' });
+const dEmail = buildDeadlineReminderEmail({ title: 'UPSC CSE', organization: 'UPSC', daysRemaining: 3, lastDate: '2026-03-05', jobUrl: 'https://realsarkariexam.com/jobs/upsc' });
+const digEmail = buildDigestEmail({ digestType: 'Daily', items: [{ title: 'UPSC CSE', type: 'job', url: 'https://realsarkariexam.com/jobs/upsc' }], siteUrl: 'https://realsarkariexam.com' });
 
 if (!vEmail.html.includes('Verify Email') || !pwEmail.html.includes('Reset Password') || !jEmail.html.includes('New Government Job')) {
   throw new Error('Email template formatting error');

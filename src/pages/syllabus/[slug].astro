@@ -46,7 +46,7 @@ const breadcrumbs = [
 <BaseLayout
   title={item.seo_title || `${item.title} — Detailed Syllabus & Exam Pattern`}
   description={item.meta_description || item.excerpt || `Download ${item.title} complete syllabus, exam scheme, and marks distribution PDF.`}
-  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/syllabus/${item.slug}`}
+  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://realsarkariexam.com'}/syllabus/${item.slug}`}
 >
   {isPreview && <AdminPreviewBanner status={item.status} itemId={item.id} />}
 

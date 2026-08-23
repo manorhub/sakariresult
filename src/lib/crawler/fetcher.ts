@@ -3,7 +3,7 @@
 
 import type { FetchResult } from './types';
 
-const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; SarkariBot/1.0; +https://sarkariinfo.org/bot)';
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (compatible; SarkariBot/1.0; +https://realsarkariexam.com/bot)';
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB cap
 

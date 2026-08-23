@@ -50,7 +50,7 @@ const breadcrumbs = [
 <BaseLayout
   title={item.seo_title || `${item.title} — Exam Date, Shifts & Schedule`}
   description={item.meta_description || item.excerpt || `Check ${item.title} examination date, shift timings, reporting instructions, and related notices.`}
-  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/exams/${item.slug}`}
+  canonicalUrl={item.canonical_url || `${Astro.site ? Astro.site.toString() : 'https://realsarkariexam.com'}/exams/${item.slug}`}
 >
   {isPreview && <AdminPreviewBanner status={item.status} itemId={item.id} />}
 

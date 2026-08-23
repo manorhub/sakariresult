@@ -1,6 +1,6 @@
 ---
 // src/pages/index.astro
-// Phase 4: Public Homepage for Sarkari Info Platform
+// Phase 4: Public Homepage for RealSarkariExam Platform
 
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SearchBox from '../components/SearchBox.astro';
@@ -25,19 +25,19 @@ const qualifications = [
 const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'Sarkari Info',
-  url: Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in',
+  name: 'RealSarkariExam',
+  url: Astro.site ? Astro.site.toString() : 'https://realsarkariexam.com',
   description: 'Fast, verified, and timely notifications for Indian Central & State Government Jobs, Exam Results, Admit Cards, and Schemes.',
   potentialAction: {
     '@type': 'SearchAction',
-    target: `${Astro.site ? Astro.site.toString() : 'https://sarkariinfo.in'}/search?q={search_term_string}`,
+    target: `${Astro.site ? Astro.site.toString() : 'https://realsarkariexam.com'}/search?q={search_term_string}`,
     'query-input': 'required name=search_term_string',
   },
 };
 ---
 
 <BaseLayout
-  title="Sarkari Info — Latest Govt Jobs, Results, Admit Cards & Answer Keys 2026"
+  title="RealSarkariExam — Latest Govt Jobs, Results, Admit Cards & Answer Keys 2026"
   description="India's leading verified government jobs and results portal. Find latest recruitment notifications for UPSC, SSC, Railway RRB, Banking, Defence, and State PSCs."
   jsonLd={websiteSchema}
 >

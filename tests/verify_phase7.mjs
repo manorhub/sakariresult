@@ -92,7 +92,7 @@ await db.run(`
 // ---------------------------------------------------------
 console.log('Test 1: Testing Global Settings & Feature Flags...');
 const genSettings = await getGeneralSettings(db);
-if (!genSettings.siteName.includes('Sarkari Info')) throw new Error('General settings retrieval failed');
+if (!genSettings.siteName.includes('RealSarkariExam')) throw new Error('General settings retrieval failed');
 
 const allFlags = await getAllFeatureFlags(db);
 if (allFlags.length < 8) throw new Error('Seeded feature flags missing');
@@ -179,7 +179,7 @@ const checkoutRes = await paymentService.createCheckoutSession({
   planId: 'plan_premium',
   amount: 99,
   currency: 'INR',
-  redirectUrl: 'https://sarkariinfo.in/account',
+  redirectUrl: 'https://realsarkariexam.com/account',
 });
 
 if (checkoutRes.success || !checkoutRes.error.includes('Payment system is not configured')) {
@@ -264,7 +264,7 @@ console.log(`  ✔ Recorded ${topSearches.length} search queries with hit counts
 // ---------------------------------------------------------
 console.log('\nTest 8: Testing Structured Error Logger & Redaction Guardrails...');
 const testSensitivePayload = {
-  email: 'admin@sarkariinfo.in',
+  email: 'admin@realsarkariexam.com',
   password: 'SuperSecretPassword123!',
   apiKey: 'sk-1234567890abcdef',
   jwt_secret: 'secret-token-value',

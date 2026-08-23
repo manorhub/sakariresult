@@ -17,7 +17,7 @@ export interface Props {
 }
 
 const {
-  title = 'Sarkari Info — Indian Govt Jobs, Results, Admit Cards & Exam Alerts',
+  title = 'RealSarkariExam — Indian Govt Jobs, Results, Admit Cards & Exam Alerts',
   description = 'Find the latest Indian Government Jobs (Sarkari Naukri), Exam Results, Admit Cards, Answer Keys, Syllabus, and Schemes with verified official notifications.',
   canonicalUrl,
   ogImage = '/og-default.png',
@@ -34,7 +34,7 @@ const canonical = buildCanonicalUrl(canonicalUrl || Astro.url.pathname, { siteUr
 const imageTarget = ogImage || '/og-default.png';
 const fullOgImage = imageTarget.startsWith('http') ? imageTarget : new URL(imageTarget, siteUrl).toString();
 
-const siteName = 'Sarkari Info';
+const siteName = 'RealSarkariExam';
 const formattedTitle = title ? (title.includes(siteName) ? title : `${title} | ${siteName}`) : siteName;
 
 let robotsContent = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';

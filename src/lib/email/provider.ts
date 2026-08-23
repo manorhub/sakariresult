@@ -10,8 +10,8 @@ export class EmailService {
     this.config = {
       provider: config?.provider || 'mock',
       apiKey: config?.apiKey,
-      fromEmail: config?.fromEmail || 'alerts@sarkariinfo.in',
-      fromName: config?.fromName || 'Sarkari Info Alerts',
+      fromEmail: config?.fromEmail || 'alerts@realsarkariexam.com',
+      fromName: config?.fromName || 'RealSarkariExam Alerts',
       webhookUrl: config?.webhookUrl,
       enabled: config?.enabled ?? true,
     };

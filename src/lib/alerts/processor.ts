@@ -27,7 +27,7 @@ export async function processNotificationQueue(
   options: { batchSize?: number; siteUrl?: string } = {}
 ): Promise<ProcessQueueResult> {
   const batchSize = options.batchSize || 30;
-  const siteUrl = (options.siteUrl || 'https://sarkariinfo.in').replace(/\/+$/, '');
+  const siteUrl = (options.siteUrl || 'https://realsarkariexam.com').replace(/\/+$/, '');
 
   // Select pending notifications with user details
   const queueItems = (await db.query<NotificationQueueItem>(`

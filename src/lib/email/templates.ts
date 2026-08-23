@@ -8,8 +8,8 @@ export interface EmailTemplateData {
 }
 
 const DEFAULT_BRAND = {
-  siteName: 'Sarkari Info',
-  siteUrl: 'https://sarkariinfo.in',
+  siteName: 'RealSarkariExam',
+  siteUrl: 'https://realsarkariexam.com',
 };
 
 function baseLayout(content: string, brand = DEFAULT_BRAND): string {
@@ -53,17 +53,17 @@ function baseLayout(content: string, brand = DEFAULT_BRAND): string {
  * 1. Email Verification Template
  */
 export function buildVerificationEmail(data: { name: string; verifyUrl: string }): { subject: string; html: string; text: string } {
-  const subject = 'Verify your email address — Sarkari Info';
+  const subject = 'Verify your email address — RealSarkariExam';
   const html = baseLayout(`
-    <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">Welcome to Sarkari Info, ${escapeHtml(data.name)}!</h2>
+    <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">Welcome to RealSarkariExam, ${escapeHtml(data.name)}!</h2>
     <p>Please verify your email address to enable customized job alerts, saved opportunities, and deadline reminders.</p>
     <div style="text-align: center; margin: 24px 0;">
       <a href="${data.verifyUrl}" class="btn">Verify Email Address</a>
     </div>
-    <p style="font-size: 13px; color: #64748b;">This verification link will expire in 24 hours. If you did not create an account on Sarkari Info, you can safely ignore this email.</p>
+    <p style="font-size: 13px; color: #64748b;">This verification link will expire in 24 hours. If you did not create an account on RealSarkariExam, you can safely ignore this email.</p>
     <p style="font-size: 12px; color: #94a3b8; word-break: break-all;">Or copy and paste this URL into your browser:<br/>${data.verifyUrl}</p>
   `);
-  const text = `Welcome to Sarkari Info, ${data.name}!\n\nPlease verify your email address by visiting this link:\n${data.verifyUrl}\n\nThis link expires in 24 hours.`;
+  const text = `Welcome to RealSarkariExam, ${data.name}!\n\nPlease verify your email address by visiting this link:\n${data.verifyUrl}\n\nThis link expires in 24 hours.`;
   return { subject, html, text };
 }
 
@@ -71,11 +71,11 @@ export function buildVerificationEmail(data: { name: string; verifyUrl: string }
  * 2. Password Reset Template
  */
 export function buildPasswordResetEmail(data: { name: string; resetUrl: string }): { subject: string; html: string; text: string } {
-  const subject = 'Reset your password — Sarkari Info';
+  const subject = 'Reset your password — RealSarkariExam';
   const html = baseLayout(`
     <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">Password Reset Request</h2>
     <p>Hello ${escapeHtml(data.name)},</p>
-    <p>We received a request to reset your password for your Sarkari Info account. Click the button below to choose a new password:</p>
+    <p>We received a request to reset your password for your RealSarkariExam account. Click the button below to choose a new password:</p>
     <div style="text-align: center; margin: 24px 0;">
       <a href="${data.resetUrl}" class="btn">Reset Password</a>
     </div>
@@ -182,7 +182,7 @@ export function buildDigestEmail(data: {
   items: { title: string; type: string; url: string }[];
   siteUrl: string;
 }): { subject: string; html: string; text: string } {
-  const subject = `Your ${data.digestType} Govt Jobs & Results Digest — Sarkari Info`;
+  const subject = `Your ${data.digestType} Govt Jobs & Results Digest — RealSarkariExam`;
   const itemsHtml = data.items
     .map(
       item => `<li style="margin-bottom: 12px;">
