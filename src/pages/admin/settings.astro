@@ -21,6 +21,25 @@ const site = await getSiteSettings(db);
       <p class="text-xs text-slate-500 mt-1">Configure portal branding, maintenance mode, announcement banner, and system parameters.</p>
     </div>
 
+    <!-- Admin Account Security Card -->
+    <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-700">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600/30 text-blue-300 border border-blue-500/40 flex items-center justify-center text-lg font-black shrink-0">
+          🛡️
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-white">Admin Account & Password Security</h2>
+          <p class="text-xs text-slate-300 mt-0.5">Change your administrator password, update credentials, and view login activity.</p>
+        </div>
+      </div>
+      <a
+        href="/admin/settings/profile"
+        class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl shadow-xs transition-colors whitespace-nowrap text-center"
+      >
+        🔑 Change Admin Password &rarr;
+      </a>
+    </div>
+
     <!-- General Settings Form -->
     <form id="general-settings-form" class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-4 text-xs">
       <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100">

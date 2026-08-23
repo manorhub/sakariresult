@@ -1,0 +1,287 @@
+---
+// src/pages/admin/settings/profile.astro
+// Admin Profile, Account Security & Password Management
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+import type { AdminSession, AdminUser } from '../../../lib/types.ts';
+
+export const prerender = false;
+
+const session = (Astro.locals as any).adminSession as AdminSession | null;
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+const admin = session?.adminId
+  ? await db.first<AdminUser>('SELECT id, email, name, role, status, last_login_at, created_at FROM admins WHERE id = ?', [session.adminId])
+  : null;
+---
+
+<AdminLayout title="Admin Profile & Security" activeNav="/admin/settings">
+  <div class="max-w-4xl space-y-6">
+    
+    <!-- Top Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center space-x-2.5">
+          <span>🛡️ Admin Account & Security</span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Manage your administrator credentials, access permissions, and account password.
+        </p>
+      </div>
+
+      <a href="/admin/settings" class="px-3 py-1.5 text-xs font-bold bg-white text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors self-start">
+        &larr; Back to Settings
+      </a>
+    </div>
+
+    <!-- 2 Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Column: Password Change Form (7 Cols) -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+          <div class="flex items-center space-x-2 pb-3 border-b border-slate-100 mb-5">
+            <span class="w-2.5 h-2.5 rounded-full bg-gov-navy"></span>
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Change Admin Password</h2>
+          </div>
+
+          <div id="password-alert" class="hidden mb-4 p-3.5 rounded-lg text-xs font-semibold"></div>
+
+          <form id="change-password-form" class="space-y-4 text-xs">
+            
+            <!-- Current Password -->
+            <div>
+              <label for="current_password" class="block font-bold text-slate-700 mb-1">
+                Current Password <span class="text-rose-500">*</span>
+              </label>
+              <div class="relative">
+                <input
+                  type="password"
+                  id="current_password"
+                  name="current_password"
+                  required
+                  placeholder="Enter current password"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:bg-white focus:border-gov-navy focus:ring-1 focus:ring-gov-navy font-mono"
+                />
+                <button
+                  type="button"
+                  class="toggle-pwd-btn absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs"
+                  data-target="current_password"
+                >
+                  👁️
+                </button>
+              </div>
+            </div>
+
+            <!-- New Password -->
+            <div>
+              <label for="new_password" class="block font-bold text-slate-700 mb-1">
+                New Password <span class="text-rose-500">*</span>
+              </label>
+              <div class="relative">
+                <input
+                  type="password"
+                  id="new_password"
+                  name="new_password"
+                  required
+                  minlength="8"
+                  placeholder="Enter new password (min 8 characters)"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:bg-white focus:border-gov-navy focus:ring-1 focus:ring-gov-navy font-mono"
+                />
+                <button
+                  type="button"
+                  class="toggle-pwd-btn absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs"
+                  data-target="new_password"
+                >
+                  👁️
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Must be at least 8 characters long. Mix letters, numbers, and symbols.</p>
+            </div>
+
+            <!-- Confirm New Password -->
+            <div>
+              <label for="confirm_password" class="block font-bold text-slate-700 mb-1">
+                Confirm New Password <span class="text-rose-500">*</span>
+              </label>
+              <div class="relative">
+                <input
+                  type="password"
+                  id="confirm_password"
+                  name="confirm_password"
+                  required
+                  minlength="8"
+                  placeholder="Re-type new password"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:bg-white focus:border-gov-navy focus:ring-1 focus:ring-gov-navy font-mono"
+                />
+                <button
+                  type="button"
+                  class="toggle-pwd-btn absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs"
+                  data-target="confirm_password"
+                >
+                  👁️
+                </button>
+              </div>
+            </div>
+
+            <div class="pt-3 flex justify-end">
+              <button
+                type="submit"
+                id="save-password-btn"
+                class="px-6 py-2.5 rounded-xl bg-gov-navy hover:bg-slate-900 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+              >
+                Update Password
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+      <!-- Right Column: Profile Summary & Security Tips (5 Cols) -->
+      <div class="lg:col-span-5 space-y-6">
+        
+        <!-- Account Details Card -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+          <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100 mb-4">
+            Active Account Profile
+          </h3>
+
+          <div class="space-y-3 text-xs">
+            <div class="flex items-center space-x-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div class="w-10 h-10 rounded-full bg-gov-navy text-white font-bold flex items-center justify-center text-sm">
+                {(admin?.name || session?.name || 'A').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p class="font-bold text-slate-900">{admin?.name || session?.name || 'Administrator'}</p>
+                <p class="text-slate-500 font-mono text-[11px]">{admin?.email || session?.email || '—'}</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+              <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                <span class="text-slate-400 block">Role</span>
+                <span class="font-bold text-amber-700 uppercase">{admin?.role || session?.role || 'admin'}</span>
+              </div>
+              <div class="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                <span class="text-slate-400 block">Status</span>
+                <span class="font-bold text-emerald-700 capitalize">{admin?.status || 'active'}</span>
+              </div>
+            </div>
+
+            {admin?.last_login_at && (
+              <div class="text-[11px] text-slate-400 pt-1">
+                Last logged in: <span class="font-medium text-slate-700">{new Date(admin.last_login_at).toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <!-- Security Best Practices Card -->
+        <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-xs border border-slate-700">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-3 flex items-center space-x-1.5">
+            <span>🔒 Security Best Practices</span>
+          </h3>
+          <ul class="text-[11px] text-slate-300 space-y-2 leading-relaxed">
+            <li class="flex items-start space-x-2">
+              <span class="text-emerald-400 font-bold">•</span>
+              <span>Use a strong, unique password not shared with any personal accounts.</span>
+            </li>
+            <li class="flex items-start space-x-2">
+              <span class="text-emerald-400 font-bold">•</span>
+              <span>Passwords are encrypted with <strong>PBKDF2-HMAC-SHA256</strong> (100,000 rounds) and individual cryptographic salts.</span>
+            </li>
+            <li class="flex items-start space-x-2">
+              <span class="text-emerald-400 font-bold">•</span>
+              <span>Always log out when accessing the admin panel on shared or public devices.</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Password reveal toggles
+    document.querySelectorAll('.toggle-pwd-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = (btn as HTMLElement).dataset.target;
+        if (!targetId) return;
+        const input = document.getElementById(targetId) as HTMLInputElement;
+        if (!input) return;
+
+        if (input.type === 'password') {
+          input.type = 'text';
+          btn.textContent = '🔒';
+        } else {
+          input.type = 'password';
+          btn.textContent = '👁️';
+        }
+      });
+    });
+
+    // Form submission
+    const form = document.getElementById('change-password-form') as HTMLFormElement;
+    const saveBtn = document.getElementById('save-password-btn') as HTMLButtonElement;
+    const alertBox = document.getElementById('password-alert') as HTMLDivElement;
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const current_password = (document.getElementById('current_password') as HTMLInputElement).value;
+      const new_password = (document.getElementById('new_password') as HTMLInputElement).value;
+      const confirm_password = (document.getElementById('confirm_password') as HTMLInputElement).value;
+
+      if (new_password !== confirm_password) {
+        showAlert('New password and confirm password do not match.', 'error');
+        return;
+      }
+
+      if (new_password.length < 8) {
+        showAlert('New password must be at least 8 characters long.', 'error');
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Updating Password...';
+      alertBox.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/admin/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current_password, new_password, confirm_password }),
+        });
+
+        const data = await res.json() as any;
+
+        if (res.ok && data.success) {
+          showAlert(data.message || 'Password updated successfully!', 'success');
+          form.reset();
+        } else {
+          showAlert(data.error || 'Failed to update password. Please check your current password.', 'error');
+        }
+      } catch (err: any) {
+        showAlert('Network or server error: ' + err.message, 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Update Password';
+      }
+    });
+
+    function showAlert(msg: string, type: 'success' | 'error') {
+      alertBox.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-200', 'bg-rose-50', 'text-rose-900', 'border-rose-200');
+      if (type === 'success') {
+        alertBox.classList.add('bg-emerald-50', 'text-emerald-900', 'border', 'border-emerald-200');
+      } else {
+        alertBox.classList.add('bg-rose-50', 'text-rose-900', 'border', 'border-rose-200');
+      }
+      alertBox.textContent = msg;
+    }
+  </script>
+</AdminLayout>

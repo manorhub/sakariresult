@@ -2,7 +2,7 @@
 // src/pages/admin/login.astro
 import '../../styles/global.css';
 
-const defaultEmail = 'admin@realsarkariexam.com';
+export const prerender = false;
 ---
 
 <!doctype html>
@@ -20,14 +20,14 @@ const defaultEmail = 'admin@realsarkariexam.com';
       
       <!-- Brand Logo Header -->
       <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-gov-saffron to-amber-500 text-white font-black text-2xl shadow-lg mb-3">
-          SI
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-gov-saffron to-amber-500 text-white font-black text-xl shadow-lg mb-3 tracking-tighter">
+          RSE
         </div>
         <h1 class="text-2xl font-black tracking-tight text-white">
-          SARKARI<span class="text-gov-saffron">ADMIN</span>
+          REAL<span class="text-gov-saffron">SARKARI</span><span class="text-amber-400">EXAM</span>
         </h1>
         <p class="text-xs text-slate-400 mt-1">
-          Government Jobs & Results CMS Management
+          Government Jobs & Results CMS Management Panel
         </p>
       </div>
 
@@ -51,11 +51,10 @@ const defaultEmail = 'admin@realsarkariexam.com';
               type="email"
               id="email"
               name="email"
-              value={defaultEmail}
               required
               autocomplete="email"
               class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/90 border border-slate-700 text-white text-sm focus:border-amber-400 focus:ring-1 focus:ring-amber-400 placeholder-slate-500"
-              placeholder="admin@realsarkariexam.com"
+              placeholder="Enter your admin email"
             />
           </div>
 
@@ -72,7 +71,7 @@ const defaultEmail = 'admin@realsarkariexam.com';
               required
               autocomplete="current-password"
               class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/90 border border-slate-700 text-white text-sm focus:border-amber-400 focus:ring-1 focus:ring-amber-400 placeholder-slate-500"
-              placeholder="••••••••"
+              placeholder="Enter your password"
             />
           </div>
 
@@ -92,19 +91,10 @@ const defaultEmail = 'admin@realsarkariexam.com';
 
         </form>
 
-        <!-- Initial Demo Credentials helper for Phase 1 testing -->
-        <div class="mt-6 pt-5 border-t border-slate-700/80 text-center">
-          <p class="text-[11px] text-slate-400">
-            Initial Admin Seed: <code class="text-amber-300 font-mono">admin@realsarkariexam.com</code> / <code class="text-amber-300 font-mono">Admin@12345</code>
-          </p>
-        </div>
-
       </div>
 
-      <div class="text-center mt-6">
-        <a href="/" class="text-xs text-slate-400 hover:text-slate-200 transition-colors">
-          &larr; Return to Public Website
-        </a>
+      <div class="mt-6 text-center text-xs text-slate-500">
+        &larr; <a href="/" class="hover:text-amber-400 transition-colors">Return to RealSarkariExam Public Portal</a>
       </div>
 
     </div>
@@ -112,44 +102,58 @@ const defaultEmail = 'admin@realsarkariexam.com';
     <script>
       const form = document.getElementById('login-form') as HTMLFormElement;
       const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
-      const btnText = document.getElementById('btn-text');
-      const btnSpinner = document.getElementById('btn-spinner');
-      const alertBox = document.getElementById('alert-error');
-      const alertText = document.getElementById('alert-error-text');
+      const btnText = document.getElementById('btn-text') as HTMLSpanElement;
+      const btnSpinner = document.getElementById('btn-spinner') as HTMLElement;
+      const alertError = document.getElementById('alert-error') as HTMLDivElement;
+      const alertErrorText = document.getElementById('alert-error-text') as HTMLSpanElement;
 
       form?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        alertBox?.classList.add('hidden');
+        
+        // Hide previous errors
+        alertError.classList.add('hidden');
+        
+        // Button loading state
+        submitBtn.disabled = true;
+        btnText.textContent = 'Authenticating...';
+        btnSpinner.classList.remove('hidden');
 
-        const email = (document.getElementById('email') as HTMLInputElement).value;
-        const password = (document.getElementById('password') as HTMLInputElement).value;
-
-        if (submitBtn) submitBtn.disabled = true;
-        btnText?.classList.add('hidden');
-        btnSpinner?.classList.remove('hidden');
+        const formData = new FormData(form);
+        const email = formData.get('email');
+        const password = formData.get('password');
 
         try {
-          const res = await fetch('/api/admin/auth/login', {
+          const response = await fetch('/api/admin/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ email, password }),
           });
 
-          const data = (await res.json()) as any;
+          const data = await response.json() as any;
 
-          if (res.ok && data.success) {
-            window.location.href = '/admin/dashboard';
+          if (response.ok && data.success) {
+            btnText.textContent = 'Redirecting...';
+            // Redirect to dashboard
+            window.location.href = data.redirect || '/admin/dashboard';
           } else {
-            if (alertText) alertText.textContent = data.error || 'Authentication failed.';
-            alertBox?.classList.remove('hidden');
+            // Show error message
+            alertErrorText.textContent = data.error || 'Authentication failed. Please check your credentials.';
+            alertError.classList.remove('hidden');
+            
+            // Reset button state
+            submitBtn.disabled = false;
+            btnText.textContent = 'Sign In to Dashboard';
+            btnSpinner.classList.add('hidden');
           }
         } catch (err: any) {
-          if (alertText) alertText.textContent = 'Server connection error. Please try again.';
-          alertBox?.classList.remove('hidden');
-        } finally {
-          if (submitBtn) submitBtn.disabled = false;
-          btnText?.classList.remove('hidden');
-          btnSpinner?.classList.add('hidden');
+          alertErrorText.textContent = 'Network or server error occurred. Please try again.';
+          alertError.classList.remove('hidden');
+          
+          submitBtn.disabled = false;
+          btnText.textContent = 'Sign In to Dashboard';
+          btnSpinner.classList.add('hidden');
         }
       });
     </script>

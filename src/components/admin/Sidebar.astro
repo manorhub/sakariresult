@@ -53,18 +53,23 @@ const menuItems = [
   </div>
 
   <!-- User Card -->
-  <div class="px-5 py-4 border-b border-slate-800 bg-slate-950/40">
-    <div class="flex items-center space-x-3">
-      <div class="w-9 h-9 rounded-full bg-blue-600/30 text-blue-400 border border-blue-500/40 flex items-center justify-center font-bold text-sm">
-        {adminName.charAt(0).toUpperCase()}
+  <div class="px-5 py-3 border-b border-slate-800 bg-slate-950/40">
+    <a href="/admin/settings/profile" class="flex items-center justify-between group p-1.5 -m-1.5 rounded-xl hover:bg-slate-800/60 transition-colors">
+      <div class="flex items-center space-x-3 overflow-hidden">
+        <div class="w-8 h-8 rounded-full bg-blue-600/30 text-blue-400 border border-blue-500/40 flex items-center justify-center font-bold text-xs shrink-0">
+          {adminName.charAt(0).toUpperCase()}
+        </div>
+        <div class="overflow-hidden">
+          <p class="text-xs font-semibold text-white truncate group-hover:text-amber-400 transition-colors">{adminName}</p>
+          <span class="inline-block text-[10px] uppercase font-bold text-amber-400 tracking-wider">
+            {adminRole}
+          </span>
+        </div>
       </div>
-      <div class="overflow-hidden">
-        <p class="text-xs font-semibold text-white truncate">{adminName}</p>
-        <span class="inline-block text-[10px] uppercase font-bold text-amber-400 tracking-wider">
-          {adminRole}
-        </span>
-      </div>
-    </div>
+      <span class="text-slate-500 group-hover:text-amber-400 text-xs transition-colors" title="Change Password / Account Security">
+        ⚙️
+      </span>
+    </a>
   </div>
 
   <!-- Menu Navigation -->
