@@ -17,6 +17,12 @@ import { detectAndSummarizeUpdates, createContentVersion } from './updates.ts';
 import { generateId, slugify, getContentTypeRoute } from '../utils.ts';
 import { extractCleanContent } from '../crawler/fingerprint.ts';
 import { submitUrlToGoogle } from '../seo/google-indexing.ts';
+import {
+  extractStructuredIdentity,
+  findDuplicateCandidate,
+  attachSourceToCanonical,
+  detectSourceType,
+} from '../dedup/index.ts';
 
 /**
  * Executes the complete 12-step AI pipeline for a given source page or raw content
@@ -70,6 +76,38 @@ export async function runAIPipeline(
       contentItemId,
       sourcePageId: sourcePage.id,
     });
+
+    // 4.1. Multi-Source Deduplication & Structured Identity Extraction
+    const structuredIdentity = extractStructuredIdentity({
+      title: sourcePage.title || '',
+      type: classification.mappedContentType,
+      organization: orgName,
+      recruitment_name: (extraction as any).post_name || (extraction as any).title,
+      advertisement_number: (extraction as any).advertisement_number,
+      notification_number: (extraction as any).notification_number,
+      vacancy: (extraction as any).vacancy,
+      application_start: (extraction as any).application_start,
+      application_end: (extraction as any).application_last_date,
+      official_website_url: (extraction as any).official_website_url,
+      official_notification_url: (extraction as any).official_notification_url,
+      official_apply_url: (extraction as any).official_apply_url,
+    });
+
+    if (!existingItem) {
+      const { candidateItem, matchResult } = await findDuplicateCandidate(db, structuredIdentity);
+      if (candidateItem && matchResult.isDuplicate) {
+        // High confidence duplicate found! Attach source to canonical item instead of creating duplicate article
+        await attachSourceToCanonical(db, candidateItem.id, {
+          source_url: sourcePage.url,
+          source_id: source?.id || null,
+          source_title: sourcePage.title,
+          source_type: detectSourceType(sourcePage.url),
+          has_pdf: Boolean(structuredIdentity.official_pdf_url),
+          has_apply_url: Boolean(structuredIdentity.official_url),
+        });
+        existingItem = candidateItem;
+      }
+    }
 
     // 5. Step 3: Critical Field Fact-Check & Verification
     const verification = verifyExtractedData(extraction, cleanSourceText, source?.base_url || sourcePage.url);
@@ -231,6 +269,20 @@ export async function runAIPipeline(
           JSON.stringify(verification.conflicts),
         ]
       );
+    }
+
+    // 12.1. Track and attach source reference in content_sources
+    try {
+      await attachSourceToCanonical(db, contentItemId, {
+        source_url: sourcePage.url,
+        source_id: sourcePage.source_id || null,
+        source_title: sourcePage.title,
+        source_type: detectSourceType(sourcePage.url),
+        has_pdf: Boolean(structuredIdentity.official_pdf_url),
+        has_apply_url: Boolean(structuredIdentity.official_url),
+      });
+    } catch (csrcErr: any) {
+      console.warn('[Content Sources Attach Warning]', csrcErr?.message);
     }
 
     // 13. Save Jobs Record if applicable

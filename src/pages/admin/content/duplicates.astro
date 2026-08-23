@@ -1,0 +1,263 @@
+---
+// src/pages/admin/content/duplicates.astro
+// Admin Multi-Source Deduplication & Duplicate Review Dashboard
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../lib/db.ts';
+
+export const prerender = false;
+
+const d1 = (Astro.locals as any)?.runtime?.env?.DB;
+const db = getDb(d1);
+
+// Fetch initial list of candidate duplicate matches
+const matchesResult = await db.query<any>(
+  `SELECT dm.*, 
+          ciA.title as title_a, ciA.slug as slug_a, ciA.type as type_a, ciA.status as status_a, ciA.source_url as source_url_a,
+          ciB.title as title_b, ciB.slug as slug_b, ciB.type as type_b, ciB.status as status_b, ciB.source_url as source_url_b
+   FROM duplicate_matches dm
+   JOIN content_items ciA ON ciA.id = dm.canonical_item_id
+   LEFT JOIN content_items ciB ON ciB.id = dm.duplicate_item_id
+   WHERE dm.status = 'pending'
+   ORDER BY dm.confidence_score DESC
+   LIMIT 50`
+);
+const matches: any[] = matchesResult.results || [];
+---
+
+<AdminLayout title="Duplicate Content Review">
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <span>🔍 Duplicate Content & Canonical Engine</span>
+          <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+            Multi-Source
+          </span>
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+          Review potential duplicate announcements from multiple sources and merge into one canonical public item.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          id="btnRunAudit"
+          class="px-3.5 py-2 text-xs font-bold bg-gov-navy text-white rounded-lg hover:bg-slate-900 transition shadow-xs flex items-center gap-1.5"
+        >
+          <span>⚡ Run Deduplication Audit</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4" id="statsContainer">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div class="text-xs font-medium text-slate-500">Pending Review</div>
+        <div class="text-2xl font-black text-slate-900 mt-1" id="statPending">{matches.length}</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div class="text-xs font-medium text-emerald-600">High Confidence (≥85%)</div>
+        <div class="text-2xl font-black text-emerald-700 mt-1" id="statHigh">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div class="text-xs font-medium text-amber-600">Review Required</div>
+        <div class="text-2xl font-black text-amber-700 mt-1" id="statReview">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <div class="text-xs font-medium text-blue-600">Total Scanned</div>
+        <div class="text-2xl font-black text-blue-700 mt-1" id="statTotal">—</div>
+      </div>
+    </div>
+
+    <!-- Results / Pairs Container -->
+    <div id="pairsContainer" class="space-y-4">
+      {matches.length === 0 ? (
+        <div class="bg-white p-12 text-center rounded-xl border border-slate-200 shadow-xs">
+          <div class="text-4xl mb-3">✨</div>
+          <h3 class="text-base font-bold text-slate-900">No Pending Duplicate Conflicts</h3>
+          <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">
+            Click "Run Deduplication Audit" to scan existing database records for potential duplicates across multiple sources.
+          </p>
+        </div>
+      ) : (
+        matches.map((m: any) => (
+          <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs" id={`match-${m.id}`}>
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 text-xs font-bold rounded bg-blue-50 text-blue-700 border border-blue-200">
+                  {m.match_tier} MATCH ({Math.round(m.confidence_score)}%)
+                </span>
+                <span class="text-xs text-slate-400">Match ID: {m.id}</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div class="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Candidate A (Canonical)</div>
+                <div class="text-sm font-bold text-slate-900 mb-1">{m.title_a}</div>
+                <div class="text-xs text-slate-500 break-all">{m.source_url_a}</div>
+              </div>
+
+              <div class="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Candidate B (Duplicate)</div>
+                <div class="text-sm font-bold text-slate-900 mb-1">{m.title_b || 'Discovered Source'}</div>
+                <div class="text-xs text-slate-500 break-all">{m.source_url_b || '—'}</div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                class="btn-merge px-3 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                data-canonical={m.canonical_item_id}
+                data-duplicate={m.duplicate_item_id}
+              >
+                ✓ Merge B into A
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+
+  <script>
+    const btnRunAudit = document.getElementById('btnRunAudit') as HTMLButtonElement | null;
+    const pairsContainer = document.getElementById('pairsContainer') as HTMLDivElement | null;
+    const statPending = document.getElementById('statPending') as HTMLDivElement | null;
+    const statHigh = document.getElementById('statHigh') as HTMLDivElement | null;
+    const statReview = document.getElementById('statReview') as HTMLDivElement | null;
+    const statTotal = document.getElementById('statTotal') as HTMLDivElement | null;
+
+    btnRunAudit?.addEventListener('click', async () => {
+      if (!btnRunAudit) return;
+      btnRunAudit.disabled = true;
+      btnRunAudit.innerHTML = '<span>⏳ Scanning Database...</span>';
+
+      try {
+        const res = await fetch('/api/admin/dedup/audit');
+        const data: any = await res.json();
+
+        if (data.success) {
+          if (statPending) statPending.innerText = String(data.pairs.length);
+          if (statHigh) statHigh.innerText = String(data.stats.highConfidence);
+          if (statReview) statReview.innerText = String(data.stats.reviewRequired);
+          if (statTotal) statTotal.innerText = String(data.stats.totalScanned);
+
+          renderPairs(data.pairs);
+        } else {
+          alert(`Audit failed: ${data.error}`);
+        }
+      } catch (err: any) {
+        alert(`Error running audit: ${err.message}`);
+      } finally {
+        btnRunAudit.disabled = false;
+        btnRunAudit.innerHTML = '<span>⚡ Run Deduplication Audit</span>';
+      }
+    });
+
+    function renderPairs(pairs: any[]) {
+      if (!pairsContainer) return;
+      if (pairs.length === 0) {
+        pairsContainer.innerHTML = `
+          <div class="bg-white p-12 text-center rounded-xl border border-slate-200 shadow-xs">
+            <div class="text-4xl mb-3">✨</div>
+            <h3 class="text-base font-bold text-slate-900">All Database Content Is Unique</h3>
+            <p class="text-xs text-slate-500 max-w-md mx-auto mt-1">No duplicate announcements detected among existing records.</p>
+          </div>
+        `;
+        return;
+      }
+
+      pairsContainer.innerHTML = pairs.map(p => `
+        <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs" id="pair-${p.candidateA.id}-${p.candidateB.id}">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 text-xs font-bold rounded ${
+                p.matchResult.confidenceScore >= 85
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                  : 'bg-amber-100 text-amber-800 border border-amber-200'
+              }">
+                ${p.matchResult.tier} MATCH (${p.matchResult.confidenceScore}%)
+              </span>
+              <span class="text-xs text-slate-500 font-medium">${p.matchResult.explanation}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Item A (Created: ${new Date(p.candidateA.createdAt).toLocaleDateString()})</div>
+              <div class="text-sm font-bold text-slate-900 mb-1">${p.candidateA.title}</div>
+              <div class="text-xs text-slate-500 mb-2 break-all">${p.candidateA.sourceUrl || '—'}</div>
+              <div class="flex flex-wrap gap-2 text-xs">
+                ${p.candidateA.vacancy ? `<span class="px-2 py-0.5 bg-white border border-slate-200 rounded font-semibold text-slate-700">Vacancy: ${p.candidateA.vacancy}</span>` : ''}
+                ${p.candidateA.lastDate ? `<span class="px-2 py-0.5 bg-white border border-slate-200 rounded font-semibold text-slate-700">Last Date: ${p.candidateA.lastDate}</span>` : ''}
+              </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Item B (Created: ${new Date(p.candidateB.createdAt).toLocaleDateString()})</div>
+              <div class="text-sm font-bold text-slate-900 mb-1">${p.candidateB.title}</div>
+              <div class="text-xs text-slate-500 mb-2 break-all">${p.candidateB.sourceUrl || '—'}</div>
+              <div class="flex flex-wrap gap-2 text-xs">
+                ${p.candidateB.vacancy ? `<span class="px-2 py-0.5 bg-white border border-slate-200 rounded font-semibold text-slate-700">Vacancy: ${p.candidateB.vacancy}</span>` : ''}
+                ${p.candidateB.lastDate ? `<span class="px-2 py-0.5 bg-white border border-slate-200 rounded font-semibold text-slate-700">Last Date: ${p.candidateB.lastDate}</span>` : ''}
+              </div>
+            </div>
+          </div>
+
+          ${p.matchResult.conflictingFields && p.matchResult.conflictingFields.length > 0 ? `
+            <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800 mb-4">
+              <strong>⚠️ Conflicting Fields:</strong> ${p.matchResult.conflictingFields.join(', ')}
+            </div>
+          ` : ''}
+
+          <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <button
+              class="btn-merge px-4 py-2 text-xs font-bold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+              data-canonical="${p.candidateA.id}"
+              data-duplicate="${p.candidateB.id}"
+            >
+              ✓ Merge B into A (Keep A Canonical)
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      attachMergeListeners();
+    }
+
+    function attachMergeListeners() {
+      document.querySelectorAll('.btn-merge').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const canonicalItemId = (btn as HTMLElement).dataset.canonical;
+          const duplicateItemId = (btn as HTMLElement).dataset.duplicate;
+          if (!canonicalItemId || !duplicateItemId) return;
+
+          if (!confirm('Are you sure you want to merge this duplicate? Duplicate will redirect to canonical and sources will be reparented.')) {
+            return;
+          }
+
+          try {
+            const res = await fetch('/api/admin/dedup/merge', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ canonicalItemId, duplicateItemId, createRedirect: true }),
+            });
+            const data: any = await res.json();
+            if (data.success) {
+              alert(data.message);
+              const card = document.getElementById(`pair-${canonicalItemId}-${duplicateItemId}`);
+              if (card) card.remove();
+            } else {
+              alert(`Merge failed: ${data.error}`);
+            }
+          } catch (err: any) {
+            alert(`Error: ${err.message}`);
+          }
+        });
+      });
+    }
+  </script>
+</AdminLayout>
